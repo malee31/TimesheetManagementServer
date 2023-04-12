@@ -2,9 +2,9 @@ import * as dotenv from "dotenv";
 // Configure all environment variables before initializing values and instances in other files
 dotenv.config();
 import express from "express";
-import apiRouter from "./api-router";
-import initialRouter from "./initial-router";
-import database from "./database";
+import apiRouter from "./api-router.js";
+import initialRouter from "./initial-router.js";
+import database from "./database.js";
 
 const app = express();
 // Is swapped to apiRouter once the startup process is completed
@@ -26,7 +26,7 @@ database.start()
 		console.log("API Router Connected!");
 	})
 	.catch(err => {
-		console.warn("Unable to start API");
+		console.warn("Unable to start API:");
 		console.error(err);
 		process.exit(1);
 	});
