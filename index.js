@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-// Configure all environment variables before initializing values and instances in other files
+// Configure server environment variables
 dotenv.config();
 import express from "express";
 import apiRouter from "./api-router.js";
@@ -20,6 +20,7 @@ app.listen(process.env.API_PORT ?? 3000, () => {
 });
 
 // Start up the database and swap out the router
+console.log("Starting Database");
 database.start()
 	.then(() => {
 		router = apiRouter;
