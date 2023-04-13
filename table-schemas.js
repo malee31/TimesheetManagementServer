@@ -24,7 +24,8 @@ const schemas = {
         (
             id       INT          NOT NULL PRIMARY KEY AUTO_INCREMENT,
             password VARCHAR(300) NOT NULL,
-            api_key  VARCHAR(300) NOT NULL
+            api_key  VARCHAR(300) NOT NULL,
+            revoked  BOOL         NOT NULL DEFAULT FALSE
         )
 	`
 };

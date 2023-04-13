@@ -5,18 +5,32 @@ import mysql from "mysql";
 import schemas from "./table-schemas.js";
 
 // Note: Before use, guarantee that the connection is active and the tables have been set up with start()
-export const connection = mysql.createConnection({
+export const pool = mysql.createPool({
 	host: process.env.MYSQL_HOST,
 	user: process.env.MYSQL_USER,
 	password: process.env.MYSQL_PASSWORD,
-	database: process.env.MYSQL_DATABASE
+	database: process.env.MYSQL_DATABASE,
+	connectionLimit: 10
 });
 
 function queryPromisify(query, ...args) {
 	return new Promise((resolve, reject) => {
-		connection.query(query, ...args, (err, res) => {
-			if(err) return reject(err);
-			resolve(res);
+		pool.getConnection((err, connection) => {
+			if(err) {
+				connection.release();
+				reject(err);
+			}
+
+			connection.on("error", function(err) {
+				connection.release();
+				reject(err);
+			});
+
+			connection.query(query, ...args, (err, res) => {
+				connection.release();
+				if(err) return reject(err);
+				resolve(res);
+			});
 		});
 	});
 }
@@ -34,9 +48,7 @@ async function createTables() {
 }
 
 async function start() {
-	console.log("Attempting a connect");
-	await connection.connect();
-	console.log("Connected. Testing connection...");
+	console.log("Creating And Testing A Connection");
 	// Test connection
 	await queryPromisify("SELECT 1 + 1 AS solution")
 		.then(() => {
@@ -61,13 +73,13 @@ async function start() {
 
 async function end() {
 	// TODO: Add any other cleanup tasks
-	await connection.end();
+	await new Promise(resolve => pool.end(() => resolve()));
 }
 
 const database = {
 	start: start,
 	end: end,
-	connection: connection,
+	pool: pool,
 	queryPromisify: queryPromisify
 };
 
