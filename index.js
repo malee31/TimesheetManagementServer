@@ -5,6 +5,7 @@ import express from "express";
 import database from "./database.js";
 import apiRouter from "./routes/api-router.js";
 import initialRouter from "./initial-router.js";
+import { apiKeyRegenerate } from "./database-interface.js";
 
 const app = express();
 // Is swapped to apiRouter once the startup process is completed
