@@ -62,13 +62,12 @@ Errors:
 - 401 `not_authed` when no admin header is provided
 - 401 `invalid_admin_auth` when admin header is invalid
 
-GET /user/sessions - All user sessions (Auth header) (Admin auth header)
+GET /user/sessions - All user sessions (Auth header)
 Response:
 - (200) List of sessions in the `sessions` key
 
 Errors:
 - 401 `not_authed` when no auth header is provided
-- 401 `invalid_admin_auth` when an invalid admin auth header is provided
 - 404 `user_not_found` when no user with a matching auth header is found
 
 GET /users/sessions - All user sessions grouped by user (Admin auth header)

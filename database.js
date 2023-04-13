@@ -67,7 +67,8 @@ async function end() {
 const database = {
 	start: start,
 	end: end,
-	connection: connection
+	connection: connection,
+	queryPromisify: queryPromisify
 };
 
 export default database;

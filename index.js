@@ -2,9 +2,9 @@ import * as dotenv from "dotenv";
 // Configure server environment variables
 dotenv.config();
 import express from "express";
-import apiRouter from "./api-router.js";
-import initialRouter from "./initial-router.js";
 import database from "./database.js";
+import apiRouter from "./routes/api-router.js";
+import initialRouter from "./initial-router.js";
 
 const app = express();
 // Is swapped to apiRouter once the startup process is completed
