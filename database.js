@@ -4,7 +4,6 @@ dotenv.config();
 import mysql from "mysql";
 import schemas from "./table-schemas.js";
 
-
 // Note: Before use, guarantee that the connection is active and the tables have been set up with start()
 export const connection = mysql.createConnection({
 	host: process.env.MYSQL_HOST,
