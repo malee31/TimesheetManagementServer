@@ -2,7 +2,7 @@ import { Router } from "express";
 import authMiddleware from "../middleware/auth-errors.js";
 import authRouter from "./auth/auth.js";
 import sessionRouter from "./session/session.js";
-import { createUser, getUser } from "../../database-interface.js";
+import { changePassword, createUser, deleteUser, getUser } from "../../database-interface.js";
 
 const userRouter = Router();
 
@@ -18,6 +18,22 @@ const userErrors = {
 	password_in_use: {
 		ok: false,
 		error: "password_in_use"
+	},
+	no_patch_method: {
+		ok: false,
+		error: "no_patch_method"
+	},
+	method_not_exist: {
+		ok: false,
+		error: "method_not_exist"
+	},
+	no_new_password: {
+		ok: false,
+		error: "no_new_password"
+	},
+	no_password_provided: {
+		ok: false,
+		error: "no_password_provided"
 	}
 };
 
@@ -54,15 +70,44 @@ userRouter.post("/", authMiddleware.admin, async (req, res) => {
 	return res.status(201).send(newUser);
 });
 
-userRouter.put("/", authMiddleware.user, (req, res) => {
-	// Edit user info like password
-	// TODO: Consider PATCH "/user/password" instead
-	return res.sendStatus(501);
+userRouter.patch("/password", authMiddleware.user, async (req, res) => {
+	const newPassword = req.body && typeof req.body["new_password"] === "string" ? req.body["new_password"].trim() : "";
+	if(!newPassword) {
+		return res.status(400).send(userErrors.no_new_password);
+	}
+
+	await changePassword(req.locals.password, newPassword);
+	return res.status(200).send({
+		ok: true,
+		message: "Password Successfully Changed"
+	});
 });
 
-userRouter.delete("/", authMiddleware.admin, (req, res) => {
+userRouter.delete("/", authMiddleware.admin, async (req, res) => {
 	// Delete the user completely given a password in the body
-	return res.sendStatus(501);
+	if(!req.body || !req.body["password"]) {
+		return res.status(400).send(userErrors.no_password_provided);
+	}
+
+	try {
+		await deleteUser(req.body["password"]);
+	} catch(err) {
+		if(err.code === "already_deleted") {
+			return res.status(202).send({
+				ok: true,
+				warning: "already_deleted"
+			});
+		}
+
+		console.warn("Unknown error while deleting a user:");
+		console.error(err);
+		return res.status(500).send("Unknown error encountered while deleting user. Let the server owner know for more information");
+	}
+
+	return res.status(200).send({
+		ok: true,
+		message: "Successfully Deleted User"
+	});
 });
 
 userRouter.get("/sessions", authMiddleware.user, (req, res) => {
