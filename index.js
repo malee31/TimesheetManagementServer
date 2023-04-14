@@ -5,9 +5,9 @@ import express from "express";
 import database from "./database.js";
 import apiRouter from "./routes/api-router.js";
 import initialRouter from "./initial-router.js";
-import { apiKeyRegenerate } from "./database-interface.js";
 
 const app = express();
+app.use(express.json());
 // Is swapped to apiRouter once the startup process is completed
 let router = initialRouter;
 
@@ -20,7 +20,7 @@ app.listen(process.env.API_PORT ?? 3000, () => {
 	console.log("Server Active");
 });
 
-// Start up the database and swap out the router
+// Start up the database and swap out the router once it is ready
 console.log("Starting Database");
 database.start()
 	.then(() => {

@@ -60,7 +60,7 @@ async function start() {
 		});
 
 	// Create tables if they do not already exist
-	console.log("Setting up tables");
+	console.log("Setting Up Tables");
 	await createTables()
 		.then(() => {
 			console.log("Table Existence Confirmed");

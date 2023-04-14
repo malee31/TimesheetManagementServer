@@ -21,6 +21,10 @@ const authErrors = {
 	user_not_found: {
 		ok: false,
 		error: "user_not_found"
+	},
+	auth_revoked_by_user: {
+		ok: false,
+		error: "auth_revoked_by_user"
 	}
 };
 
@@ -50,17 +54,22 @@ async function userAuthMiddleware(req, res, next) {
 	}
 
 	// Look up the api key to confirm it exists
-	const linkedPassword = await apiKeyLookup(apiKey);
-	if(!linkedPassword.length) {
+	const linkedPasswordRows = await apiKeyLookup(apiKey);
+	if(!linkedPasswordRows.length) {
 		return res.status(404).send(authErrors.user_not_found);
 	}
 
-	if(!linkedPassword.length > 1) {
+	if(!linkedPasswordRows.length > 1) {
 		console.warn("Warning: There are multiple rows with the same API key!");
 	}
 
+	const linkedPassword = linkedPasswordRows[0];
+	if(linkedPassword["revoked"]) {
+		return res.status(401).send(authErrors.auth_revoked_by_user)
+	}
+
 	// Extract api key from the results
-	req.locals.password = linkedPassword[0]["password"];
+	req.locals.password = linkedPassword["password"];
 
 	next();
 }
