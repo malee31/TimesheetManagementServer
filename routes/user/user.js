@@ -2,7 +2,7 @@ import { Router } from "express";
 import authMiddleware from "../middleware/auth-errors.js";
 import authRouter from "./auth/auth.js";
 import sessionRouter from "./session/session.js";
-import { changePassword, createUser, deleteUser, getUser } from "../../database-interface.js";
+import { changePassword, createUser, deleteUser, getLatestSession, getUser, listSessions } from "../../database-interface.js";
 
 const userRouter = Router();
 
@@ -110,9 +110,27 @@ userRouter.delete("/", authMiddleware.admin, async (req, res) => {
 	});
 });
 
-userRouter.get("/sessions", authMiddleware.user, (req, res) => {
+userRouter.get("/status", authMiddleware.user, async (req, res) => {
+	// Return status of the user
+	// TODO: Switch to using a JOIN
+	const user = await getUser(req.locals.password);
+	const latestSession = await getLatestSession(req.locals.password);
+	return res.status(200).send({
+		ok: true,
+		user: {
+			...user,
+			session: latestSession
+		}
+	});
+});
+
+userRouter.get("/sessions", authMiddleware.user, async (req, res) => {
 	// Return all sessions tied to the user
-	return res.sendStatus(501);
+	const userSessions = await listSessions(req.locals.password);
+	return res.status(200).send({
+		ok: true,
+		sessions: userSessions
+	});
 });
 
 userRouter.post("/sessions", authMiddleware.admin, (req, res) => {

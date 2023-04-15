@@ -40,6 +40,22 @@ export async function apiKeyRegenerate(oldApiKey) {
 	return newApiKey;
 }
 
+export async function getAllUsers() {
+	const users = await database.queryPromisify("SELECT id, first_name, last_name, session FROM users_v2");
+	if(users.length === 0) {
+		console.warn("No users in the database");
+	}
+	return users;
+}
+
+export async function getAllUsersWithStatus() {
+	const users = await database.queryPromisify("SELECT id, first_name, last_name, session FROM users_v2");
+	if(users.length === 0) {
+		console.warn("No users in the database");
+	}
+	return users;
+}
+
 export async function getUser(password) {
 	const users = await database.queryPromisify("SELECT id, first_name, last_name, session FROM users_v2 WHERE password = ?", [password]);
 	if(!users.length) return null;
@@ -83,4 +99,49 @@ export async function deleteUser(password) {
 	}
 
 	await database.queryPromisify("DELETE FROM api_keys_v2 WHERE password = ?", [password]);
+}
+
+export async function listSessions(password) {
+	const userSessions = await database.queryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ?", [password]);
+	if(userSessions.length === 0) {
+		console.warn("No sessions for user");
+		return null;
+	}
+	return userSessions;
+}
+
+export async function getLatestSession(password) {
+	const latestSessionRes = await database.queryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ? ORDER BY startTime DESC LIMIT 1", [password]);
+	if(latestSessionRes.length === 0) {
+		console.warn("No latest session for user");
+		return null;
+	}
+	return latestSessionRes[0];
+}
+
+export async function createSession(password, startTime, endTime = null) {
+	await database.queryPromisify("INSERT INTO sessions_v2 VALUES(NULL, ?, ?, ?)", [password, startTime, endTime]);
+	const latestSession = await getLatestSession(password);
+	await database.queryPromisify("UPDATE users_v2 SET session = ? WHERE password = ?", [latestSession.session_id, password])
+	return latestSession;
+}
+
+export async function patchSession(patchedSession) {
+	// Uses session_id to patch startTime and endTime.
+	// Password and session existence are not checked so ensure they are secure
+	await database.queryPromisify("UPDATE sessions_v2 SET startTime = ?, endTime = ? WHERE session_id = ?", [
+		patchedSession["startTime"],
+		patchedSession["endTime"],
+		patchedSession["session_id"]
+	]);
+}
+
+export async function deleteSession(sessionId) {
+	const deleteRes = await database.queryPromisify("DELETE FROM sessions_v2 WHERE session_id = ?", [sessionId]);
+	// TODO: Handle edge case where the current session is deleted
+	if(deleteRes.affectedRows === 0) {
+		const noDeleteErr = new RangeError("Session Not Found");
+		noDeleteErr.code = "not_found";
+		throw noDeleteErr;
+	}
 }

@@ -16,7 +16,7 @@ const schemas = {
             session_id INT          NOT NULL PRIMARY KEY AUTO_INCREMENT,
             password   VARCHAR(300) NOT NULL,
             startTime  BIGINT       NOT NULL,
-            endTime    BIGINT       NOT NULL
+            endTime    BIGINT
         );
 	`,
 	apiKeys: `
