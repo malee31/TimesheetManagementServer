@@ -39,7 +39,7 @@ authRouter.post("/revoke", authMiddleware.user, async (req, res) => {
 		return res.status(500).send("Unknown error while regenerating an api key. Let the server owner know. Old logins will still work");
 	}
 
-	return res.sendStatus(200).send({
+	return res.status(200).send({
 		ok: true,
 		api_key: newApiKey
 	});

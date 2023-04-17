@@ -2,8 +2,8 @@ import { Router } from "express";
 import authMiddleware from "../middleware/auth-errors.js";
 import authRouter from "./auth/auth.js";
 import sessionRouter from "./session/session.js";
-import { changePassword, createUser, deleteUser, getLatestSession, getUser, listSessions } from "../../database-interface.js";
-import { ensureBodyKey, noBodyErrors } from "../middleware/body-errors.js";
+import { changePassword, createSession, createUser, deleteUser, getLatestSession, getUser, listSessions } from "../../database-interface.js";
+import { ensureBodyKey, ensureBodyKeys, noBodyErrors } from "../middleware/body-errors.js";
 
 const userRouter = Router();
 
@@ -35,6 +35,14 @@ const userErrors = {
 	no_password_provided: {
 		ok: false,
 		error: "no_password_provided"
+	},
+	invalid_start_time: {
+		ok: false,
+		error: "invalid_start_time"
+	},
+	invalid_end_time: {
+		ok: false,
+		error: "invalid_end_time"
 	}
 };
 
@@ -126,10 +134,33 @@ userRouter.get("/sessions", authMiddleware.user, async (req, res) => {
 	});
 });
 
-userRouter.post("/sessions", authMiddleware.admin, (req, res) => {
+userRouter.post("/sessions", [authMiddleware.admin, ensureBodyKeys(["password", "startTime", "endTime"])], async (req, res) => {
 	// Adds an arbitrary session
 	// TODO: Consider rejects for currently active sessions
-	return res.sendStatus(501);
+	const password = req.body["password"];
+	const startTime = parseInt(req.body["startTime"]);
+	const endTimeStr = req.body["endTime"];
+	const endTime = endTimeStr === null ? null : parseInt(endTimeStr);
+
+	if(!password) {
+		return res.status(400).send(userErrors.no_password_provided);
+	}
+
+	if(isNaN(startTime) || startTime < 0) {
+		return res.status(400).send(userErrors.invalid_start_time);
+	}
+
+	// if(endTime !== null && (isNaN(endTime) || endTime < 0)) {
+	if(endTime === null || isNaN(endTime) || endTime < startTime) {
+		return res.status(400).send(userErrors.invalid_end_time);
+	}
+
+	const newSession = await createSession(password, startTime, endTime, true);
+
+	return res.status(200).send({
+		ok: true,
+		session: newSession
+	});
 });
 
 // TODO: Consider a public "/:id" endpoint
