@@ -21,12 +21,15 @@ function queryPromisify(query, ...args) {
 				reject(err);
 			}
 
-			connection.on("error", function(err) {
+			const connectionError = err => {
 				connection.release();
 				reject(err);
-			});
+			};
+
+			connection.once("error", connectionError);
 
 			connection.query(query, ...args, (err, res) => {
+				connection.removeListener("error", connectionError);
 				connection.release();
 				if(err) return reject(err);
 				resolve(res);
