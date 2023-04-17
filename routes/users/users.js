@@ -24,7 +24,7 @@ usersRouter.get("/status", async (req, res) => {
 });
 
 usersRouter.get("/sessions", authMiddleware.admin, (req, res) => {
-	// List all user sessions grouped by user
+	// New plan: This endpoint just gets paginated list of sessions. Regardless of who they are from
 	return res.sendStatus(501);
 });
 

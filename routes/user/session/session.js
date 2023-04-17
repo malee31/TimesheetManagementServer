@@ -1,6 +1,7 @@
 import { Router } from "express";
 import authMiddleware from "../../middleware/auth-errors.js";
 import { createSession, deleteSession, getLatestSession, patchSession } from "../../../database-interface.js";
+import { ensureBodyKey } from "../../middleware/body-errors.js";
 
 const sessionRouter = Router();
 
@@ -62,52 +63,48 @@ sessionRouter.get("/latest", authMiddleware.user, async (req, res) => {
 	});
 });
 
-sessionRouter.patch("/latest", authMiddleware.user, async (req, res) => {
+sessionRouter.patch("/latest", [authMiddleware.user, ensureBodyKey("method", sessionErrors.no_session_method)], async (req, res) => {
 	// Changes latest session for logout
 	// TODO: Reconsider implementation/endpoint
-	if(!req.body || !req.body["method"]) {
-		return res.status(400).send(sessionErrors.no_session_method)
-	}
-
 	const method = req.body["method"];
-	if(method !== "sign_in" && method !== "sign_out") {
-		return res.status(400).send(sessionErrors.invalid_session_method);
-	}
-
 	const latestSession = await getLatestSession(req.locals.password);
+	switch(method) {
+		case "sign_in":
+			if(latestSession && !latestSession.endTime) {
+				return res.status(200).send({
+					ok: true,
+					warning: "already_signed_in"
+				});
+			}
 
-	if(method === "sign_in") {
-		if(latestSession && !latestSession.endTime) {
+			const newSession = await createSession(req.locals.password, Date.now());
 			return res.status(200).send({
 				ok: true,
-				warning: "already_signed_in"
+				session: newSession
 			});
-		}
 
-		const newSession = await createSession(req.locals.password, Date.now());
-		return res.status(200).send({
-			ok: true,
-			session: newSession
-		});
+		case "sign_out":
+			if(!latestSession || latestSession.endTime) {
+				return res.status(200).send({
+					ok: true,
+					warning: "already_signed_out"
+				});
+			}
+
+			const patchedSession = {
+				...latestSession,
+				endTime: Date.now()
+			};
+			await patchSession(patchedSession);
+
+			return res.status(200).send({
+				ok: true,
+				session: patchedSession
+			});
+
+		default:
+			return res.status(400).send(sessionErrors.invalid_session_method);
 	}
-	// Method "sign_out"
-	if(!latestSession || latestSession.endTime) {
-		return res.status(200).send({
-			ok: true,
-			warning: "already_signed_out"
-		});
-	}
-
-	const patchedSession = {
-		...latestSession,
-		endTime: Date.now()
-	};
-	await patchSession(patchedSession);
-
-	return res.status(200).send({
-		ok: true,
-		session: patchedSession
-	});
 });
 
 export default sessionRouter;

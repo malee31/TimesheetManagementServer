@@ -1,6 +1,7 @@
 import { Router } from "express";
 import authMiddleware from "../../middleware/auth-errors.js";
 import { apiKeyExchange, apiKeyRegenerate } from "../../../database-interface.js";
+import { ensureBodyKey } from "../../middleware/body-errors.js";
 
 const authRouter = Router();
 
@@ -15,14 +16,9 @@ const authErrors = {
 	}
 };
 
-authRouter.post("/exchange", async (req, res) => {
+authRouter.post("/exchange", ensureBodyKey("password", authErrors.no_password_provided), async (req, res) => {
 	// Exchange a password for an api key
-	const password = req.body && typeof req.body["password"] === "string" ? req.body["password"].trim() : "";
-	if(!password) {
-		return res.status(400).send(authErrors.no_password_provided);
-	}
-
-	const apiKey = await apiKeyExchange(password);
+	const apiKey = await apiKeyExchange(req.body["password"]);
 	return res.status(200).send({
 		ok: true,
 		api_key: apiKey

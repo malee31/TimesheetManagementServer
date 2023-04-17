@@ -3,6 +3,7 @@ import authMiddleware from "../middleware/auth-errors.js";
 import authRouter from "./auth/auth.js";
 import sessionRouter from "./session/session.js";
 import { changePassword, createUser, deleteUser, getLatestSession, getUser, listSessions } from "../../database-interface.js";
+import { ensureBodyKey, noBodyErrors } from "../middleware/body-errors.js";
 
 const userRouter = Router();
 
@@ -50,7 +51,7 @@ userRouter.get("/", authMiddleware.user, async (req, res) => {
 	});
 });
 
-userRouter.post("/", authMiddleware.admin, async (req, res) => {
+userRouter.post("/", [authMiddleware.admin, noBodyErrors], async (req, res) => {
 	// Add user from req.body
 	let newUser;
 	try {
@@ -70,25 +71,17 @@ userRouter.post("/", authMiddleware.admin, async (req, res) => {
 	return res.status(201).send(newUser);
 });
 
-userRouter.patch("/password", authMiddleware.user, async (req, res) => {
-	const newPassword = req.body && typeof req.body["new_password"] === "string" ? req.body["new_password"].trim() : "";
-	if(!newPassword) {
-		return res.status(400).send(userErrors.no_new_password);
-	}
-
-	await changePassword(req.locals.password, newPassword);
+userRouter.patch("/password", [authMiddleware.user, ensureBodyKey("new_password", userErrors.no_new_password)], async (req, res) => {
+	// TODO: Type check new_password
+	await changePassword(req.locals.password, req.body["new_password"]);
 	return res.status(200).send({
 		ok: true,
 		message: "Password Successfully Changed"
 	});
 });
 
-userRouter.delete("/", authMiddleware.admin, async (req, res) => {
+userRouter.delete("/", [authMiddleware.admin, ensureBodyKey("password", userErrors.no_password_provided)], async (req, res) => {
 	// Delete the user completely given a password in the body
-	if(!req.body || !req.body["password"]) {
-		return res.status(400).send(userErrors.no_password_provided);
-	}
-
 	try {
 		await deleteUser(req.body["password"]);
 	} catch(err) {

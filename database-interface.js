@@ -49,7 +49,7 @@ export async function getAllUsers() {
 }
 
 export async function getAllUsersWithStatus() {
-	const users = await database.queryPromisify("SELECT id, first_name, last_name, session FROM users_v2");
+	const users = await database.queryPromisify("SELECT u.id, u.first_name, u.last_name, s.session_id, s.startTime, s.endTime FROM users_v2 u LEFT JOIN sessions_v2 s ON u.session = s.session_id");
 	if(users.length === 0) {
 		console.warn("No users in the database");
 	}
@@ -111,8 +111,9 @@ export async function listSessions(password) {
 }
 
 export async function getLatestSession(password) {
-	const latestSessionRes = await database.queryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ? ORDER BY startTime DESC LIMIT 1", [password]);
-	if(latestSessionRes.length === 0) {
+	// Assumption made that user.session is kept up-to-date
+	const latestSessionRes = await database.queryPromisify("SELECT s.session_id, s.startTime, s.endTime FROM sessions_v2 s RIGHT JOIN users_v2 u ON u.session = s.session_id WHERE u.password = ?", [password]);
+	if(latestSessionRes.length === 0 || latestSessionRes[0].session_id === null) {
 		console.warn("No latest session for user");
 		return null;
 	}
@@ -121,9 +122,9 @@ export async function getLatestSession(password) {
 
 export async function createSession(password, startTime, endTime = null) {
 	await database.queryPromisify("INSERT INTO sessions_v2 VALUES(NULL, ?, ?, ?)", [password, startTime, endTime]);
-	const latestSession = await getLatestSession(password);
-	await database.queryPromisify("UPDATE users_v2 SET session = ? WHERE password = ?", [latestSession.session_id, password])
-	return latestSession;
+	const newSession = (await database.queryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ? ORDER BY startTime DESC LIMIT 1", [password]))[0];
+	await database.queryPromisify("UPDATE users_v2 SET session = ? WHERE password = ?", [newSession.session_id, password])
+	return newSession;
 }
 
 export async function patchSession(patchedSession) {
