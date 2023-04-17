@@ -120,10 +120,17 @@ export async function getLatestSession(password) {
 	return latestSessionRes[0];
 }
 
-export async function createSession(password, startTime, endTime = null) {
+export async function createSession(password, startTime, endTime = null, skipUpdate) {
 	await database.queryPromisify("INSERT INTO sessions_v2 VALUES(NULL, ?, ?, ?)", [password, startTime, endTime]);
-	const newSession = (await database.queryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ? ORDER BY startTime DESC LIMIT 1", [password]))[0];
-	await database.queryPromisify("UPDATE users_v2 SET session = ? WHERE password = ?", [newSession.session_id, password])
+	let newSession;
+	if(endTime === null) {
+		newSession = (await database.queryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ? AND startTime = ? AND endTime IS NULL ORDER BY session_id DESC LIMIT 1", [password, startTime]))[0];
+	} else {
+		newSession = (await database.queryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ? AND startTime = ? AND endTime = ? ORDER BY session_id DESC LIMIT 1", [password, startTime, endTime]))[0];
+	}
+	if(!skipUpdate) {
+		await database.queryPromisify("UPDATE users_v2 SET session = ? WHERE password = ?", [newSession.session_id, password])
+	}
 	return newSession;
 }
 
@@ -145,4 +152,14 @@ export async function deleteSession(sessionId) {
 		noDeleteErr.code = "not_found";
 		throw noDeleteErr;
 	}
+}
+
+export async function getSessions(count, offset) {
+	const sessionsRes = await database.queryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 ORDER BY session_id LIMIT ? OFFSET ?", [count, offset]);
+	console.log(sessionsRes);
+	if(sessionsRes.length === 0) {
+		return null;
+	}
+
+	return sessionsRes;
 }
