@@ -13,7 +13,7 @@ export const pool = mysql.createPool({
 	connectionLimit: 10
 });
 
-function queryPromisify(query, ...args) {
+function promisifyConnection() {
 	return new Promise((resolve, reject) => {
 		pool.getConnection((err, connection) => {
 			if(err) {
@@ -21,27 +21,101 @@ function queryPromisify(query, ...args) {
 				reject(err);
 			}
 
-			const connectionError = err => {
-				connection.release();
-				reject(err);
+			resolve(connection);
+		});
+	});
+}
+
+async function singleQueryPromisify(query, ...args) {
+	const connection = await promisifyConnection();
+
+	return await new Promise((resolve, reject) => {
+		const connectionError = err => {
+			connection.release();
+			reject(err);
+		};
+
+		connection.once("error", connectionError);
+
+		connection.query(query, ...args, (err, res) => {
+			connection.removeListener("error", connectionError);
+			connection.release();
+			if(err) return reject(err);
+			resolve(res);
+		});
+	});
+}
+
+async function transactionPromisify() {
+	const connection = await promisifyConnection();
+
+	return new Promise((resolve, reject) => {
+		const connectionError = err => {
+			connection.release();
+			return reject(err);
+		};
+
+		connection.once("error", connectionError);
+
+		connection.beginTransaction(err => {
+			if(err) {
+				return connectionError(err);
+			}
+
+			const rollback = async () => {
+				return new Promise(resolve => {
+					connection.rollback(err => {
+						connection.removeListener("error", connectionError);
+						connection.release();
+						if(err) {
+							return reject(err);
+						}
+						resolve();
+					});
+				});
 			};
 
-			connection.once("error", connectionError);
+			const commit = async () => {
+				return new Promise((resolve, reject) => {
+					connection.commit(async err => {
+						connection.removeListener("error", connectionError);
+						if(err) {
+							await rollback();
+							return reject(err);
+						}
+						connection.removeListener("error", connectionError);
+						connection.release();
+						resolve();
+					});
+				});
+			};
 
-			connection.query(query, ...args, (err, res) => {
-				connection.removeListener("error", connectionError);
-				connection.release();
-				if(err) return reject(err);
-				resolve(res);
+			resolve({
+				commit: commit,
+				rollback: rollback,
+				connection: connection
 			});
 		});
 	});
 }
 
+function transactionQuery(transaction, query, ...args) {
+	// Don't forget to await transaction.commit()!
+	return new Promise((resolve, reject) => {
+		transaction.connection.query(query, ...args, async (err, res) => {
+			if(err) {
+				await transaction.rollback();
+				return reject(err);
+			}
+			resolve(res);
+		});
+	});
+}
+
 async function createTables() {
-	const usersTableCreate = queryPromisify(schemas.users);
-	const sessionsTableCreate = queryPromisify(schemas.sessions);
-	const apiKeysTableCreate = queryPromisify(schemas.apiKeys);
+	const usersTableCreate = singleQueryPromisify(schemas.users);
+	const sessionsTableCreate = singleQueryPromisify(schemas.sessions);
+	const apiKeysTableCreate = singleQueryPromisify(schemas.apiKeys);
 
 	return await Promise.all([
 		usersTableCreate,
@@ -53,7 +127,7 @@ async function createTables() {
 async function start() {
 	console.log("Creating And Testing A Connection");
 	// Test connection
-	await queryPromisify("SELECT 1 + 1 AS solution")
+	await singleQueryPromisify("SELECT 1 + 1 AS solution")
 		.then(() => {
 			console.log("Successfully Connection Confirmed");
 		})
@@ -83,7 +157,9 @@ const database = {
 	start: start,
 	end: end,
 	pool: pool,
-	queryPromisify: queryPromisify
+	singleQueryPromisify: singleQueryPromisify,
+	transactionPromisify: transactionPromisify,
+	transactionQuery: transactionQuery
 };
 
 export default database;

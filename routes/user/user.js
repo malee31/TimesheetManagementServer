@@ -43,6 +43,11 @@ const userErrors = {
 	invalid_end_time: {
 		ok: false,
 		error: "invalid_end_time"
+	},
+	unknown_add_user_error: {
+		ok: false,
+		error: "unknown_add_user_error",
+		message: "Unknown error while creating a user. Please let the server owner know for further investigation"
 	}
 };
 
@@ -61,9 +66,10 @@ userRouter.get("/", authMiddleware.user, async (req, res) => {
 
 userRouter.post("/", [authMiddleware.admin, noBodyErrors], async (req, res) => {
 	// Add user from req.body
-	let newUser;
 	try {
-		newUser = await createUser(req.body);
+		const newUser = await createUser(req.body);
+
+		return res.status(201).send(newUser);
 	} catch(err) {
 		if(err.code === "user_data_not_nonempty_strings") {
 			return res.status(403).send(userErrors[err.code]);
@@ -73,14 +79,15 @@ userRouter.post("/", [authMiddleware.admin, noBodyErrors], async (req, res) => {
 		}
 		console.warn("Unknown error while creating user:");
 		console.error(err);
-		return res.status(500).send("Unknown error while creating a user. Please let the server owner know for investigation");
+		return res.status(500).send({
+			...userErrors.unknown_add_user_error,
+			code: err.code
+		});
 	}
-
-	return res.status(201).send(newUser);
 });
 
 userRouter.patch("/password", [authMiddleware.user, ensureBodyKey("new_password", userErrors.no_new_password)], async (req, res) => {
-	// TODO: Type check new_password
+	// TODO: Type check new_password and handle errors
 	await changePassword(req.locals.password, req.body["new_password"]);
 	return res.status(200).send({
 		ok: true,
