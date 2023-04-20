@@ -73,12 +73,7 @@ export async function apiKeyRegenerate(oldApiKey) {
 }
 
 export async function getAllUsers() {
-	const users = tables.users.map(u => selectObj(u, ["id", "first_name", "last_name", "session"]));
-
-	if(users.length === 0) {
-		console.warn("No users in the database");
-	}
-	return users;
+	return tables.users.map(u => selectObj(u, ["id", "first_name", "last_name", "session"]));
 }
 
 export async function getAllUsersWithStatus() {
@@ -228,7 +223,7 @@ export async function deleteSession(sessionId) {
 
 export async function getSessions(count, offset) {
 	const sessionsRes = tables.sessions
-		.sort((s1, s2) => s2.session_id - s1.session_id)
+		.sort((s1, s2) => s1.session_id - s2.session_id)
 		.slice(offset, offset + count)
 		.map(s => selectObj(s, ["session_id", "startTime", "endTime"]));
 
@@ -240,3 +235,8 @@ export async function getSessions(count, offset) {
 }
 
 export const isMocked = true;
+// For direct modification
+export const mock_data = {
+	tables: tables,
+	ids: ids
+};

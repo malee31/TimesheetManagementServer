@@ -12,7 +12,7 @@ app.use((req, res, next) => {
 			});
 		}
 
-		if (err) {
+		if(err) {
 			console.warn("Unknown JSON/Body Parsing Error:");
 			console.error(err);
 
