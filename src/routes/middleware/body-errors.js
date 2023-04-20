@@ -10,8 +10,8 @@ const bodyErrors = {
 }
 
 export function noBodyErrors(req, res, next) {
-	// Note: Technically the O(n) key check and this function is not needed but it is kept for developer friendliness
-	if(!req.body || !Object.keys(req.body).length) {
+	// Reject requests without a body or JSON content
+	if(!req.body || req.header("Content-Length") <= 2) {
 		return res.status(400).send(bodyErrors.request_body_empty);
 	}
 
