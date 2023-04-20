@@ -1,9 +1,5 @@
 import database from "./database.js";
-import { v4 as uuidv4 } from "uuid";
-
-function makeNewApiKey() {
-	return `U-${uuidv4()}`;
-}
+import { makeNewApiKey } from "./utils/apiKey.js";
 
 // This file acts as an abstraction layer between the database and the code for easy compatibility with any database
 // This file should contain methods to interact and manipulate database information
