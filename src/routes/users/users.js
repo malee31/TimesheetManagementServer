@@ -1,6 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "../middleware/auth-errors.js";
-import { getAllUsers, getAllUsersWithStatus, getSessions } from "../../database-interface.js";
+import { getAllUsers, getAllUsersWithStatus, getSessions } from "../../database/database-interface.js";
 
 const usersRouter = Router();
 

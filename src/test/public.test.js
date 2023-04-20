@@ -1,13 +1,13 @@
-jest.mock("../database-interface.js");
+jest.mock("../database/database-interface.js");
 
 test("Empty Database Mock Working", async () => {
-	const mockedDBI = require("../database-interface.js");
+	const mockedDBI = require("../database/database-interface.js");
 	expect(mockedDBI.isMocked).toBeTruthy();
 	expect(await mockedDBI.getAllUsers()).toEqual([]);
 });
 
 test("User Insert", () => {
-	const mockedDBI = require("../database-interface.js");
+	const mockedDBI = require("../database/database-interface.js");
 
 	expect(() => mockedDBI.createUser({
 		firstName: "mock",
@@ -18,7 +18,7 @@ test("User Insert", () => {
 });
 
 test("User Insert Fail", () => {
-	const mockedDBI = require("../database-interface.js");
+	const mockedDBI = require("../database/database-interface.js");
 
 	expect(() => mockedDBI.createUser({})).rejects.toThrow();
 });

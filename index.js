@@ -1,8 +1,8 @@
 import * as dotenv from "dotenv";
 // Configure server environment variables
 dotenv.config();
-import app, { activateApiRouter } from "./app.js";
-import database from "./database.js";
+import app, { activateApiRouter } from "./src/app.js";
+import database from "./src/database/database.js";
 
 app.listen(process.env.API_PORT ?? 3000, () => {
 	console.log("Server Active");

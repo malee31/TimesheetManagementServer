@@ -1,6 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "../../middleware/auth-errors.js";
-import { apiKeyExchange, apiKeyRegenerate } from "../../../database-interface.js";
+import { apiKeyExchange, apiKeyRegenerate } from "../../../database/database-interface.js";
 import { ensureBodyKey } from "../../middleware/body-errors.js";
 
 const authRouter = Router();

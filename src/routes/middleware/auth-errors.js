@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import { apiKeyLookup } from "../../database-interface.js";
+import { apiKeyLookup } from "../../database/database-interface.js";
 // Load in admin password from env.
 // TODO: Consider not hard-coding the admin password in env
 dotenv.config();

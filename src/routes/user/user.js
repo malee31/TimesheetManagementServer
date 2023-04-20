@@ -2,7 +2,7 @@ import { Router } from "express";
 import authMiddleware from "../middleware/auth-errors.js";
 import authRouter from "./auth/auth.js";
 import sessionRouter from "./session/session.js";
-import { changePassword, createSession, createUser, deleteUser, getLatestSession, getUser, listSessions } from "../../database-interface.js";
+import { changePassword, createSession, createUser, deleteUser, getLatestSession, getUser, listSessions } from "../../database/database-interface.js";
 import { ensureBodyKey, ensureBodyKeys, noBodyErrors } from "../middleware/body-errors.js";
 
 const userRouter = Router();
