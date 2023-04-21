@@ -1,6 +1,5 @@
 const request = require("supertest");
 
-
 describe("POST /exchange", () => {
 	beforeEach(() => {
 		jest.mock("../../../database/database-interface.js");

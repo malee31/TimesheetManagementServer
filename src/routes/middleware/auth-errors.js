@@ -92,6 +92,7 @@ function adminAuthMiddleware(req, res, next) {
 }
 
 const authMiddleware = {
+	noAuth: authExistsMiddleware,
 	user: [authExistsMiddleware, userAuthMiddleware],
 	admin: [authExistsMiddleware, adminAuthMiddleware]
 };
