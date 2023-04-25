@@ -175,3 +175,99 @@ describe("User Auth Middleware", () => {
 		expect(req.locals.apiKey).toBe("U-Invalid-Key");
 	});
 });
+
+describe("Admin Auth Middleware", () => {
+	const ORIGINAL_ENV = process.env;
+
+	beforeEach(() => {
+		jest.resetModules();
+		process.env = {
+			...ORIGINAL_ENV,
+			ADMIN_KEY: "A-Admin-Key"
+		};
+
+		jest.mock("../../database/database-interface.js");
+		const mockedDBI = require("../../database/database-interface.js");
+		mockedDBI.setSampleData();
+	});
+
+	afterAll(() => {
+		process.env = ORIGINAL_ENV;
+	});
+
+	it("Handles Invalid Admin Auth Format", () => {
+		// Note: Depends on order and position in array. Update test if changed
+		const { admin: adminMiddleware } = require("./auth-errors.js").default;
+		const adminAuthMiddleware = adminMiddleware[1];
+
+		const req = {};
+		req.locals = {
+			apiKey: "X-Invalid-Key-Prefix"
+		};
+
+		const res = {};
+		res.send = jest.fn();
+		res.status = jest.fn(() => res);
+
+		const next = jest.fn();
+
+		adminAuthMiddleware(req, res, next);
+		expect(res.status).toBeCalledWith(401);
+		expect(res.send).toBeCalledWith(
+			expect.objectContaining({
+				ok: false,
+				error: "invalid_auth_format"
+			})
+		);
+		expect(next).not.toHaveBeenCalled();
+	});
+
+	it("Handles Valid Admin Auth", async () => {
+		// Note: Depends on order and position in array. Update test if changed
+		const { admin: adminMiddleware } = require("./auth-errors.js").default;
+		const adminAuthMiddleware = adminMiddleware[1];
+
+		const req = {};
+		req.locals = {
+			apiKey: "A-Admin-Key"
+		};
+
+		const res = {};
+		res.send = jest.fn();
+		res.status = jest.fn(() => res);
+
+		const next = jest.fn();
+
+		await adminAuthMiddleware(req, res, next);
+		expect(res.status).not.toBeCalled();
+		expect(res.send).not.toBeCalled();
+		expect(req.locals.apiKey).toBe("A-Admin-Key");
+	});
+
+	it("Handles Invalid Admin Keys", async () => {
+		// Note: Depends on order and position in array. Update test if changed
+		const { admin: adminMiddleware } = require("./auth-errors.js").default;
+		const adminAuthMiddleware = adminMiddleware[1];
+
+		const req = {};
+		req.locals = {
+			apiKey: "A-Invalid-Key"
+		};
+
+		const res = {};
+		res.send = jest.fn();
+		res.status = jest.fn(() => res);
+
+		const next = jest.fn();
+
+		await adminAuthMiddleware(req, res, next);
+		expect(res.status).toBeCalledWith(401);
+		expect(res.send).toBeCalledWith(
+			expect.objectContaining({
+				ok: false,
+				error: "invalid_admin_auth"
+			})
+		);
+		expect(req.locals.apiKey).toBe("A-Invalid-Key");
+	});
+});
