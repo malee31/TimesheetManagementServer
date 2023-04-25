@@ -121,6 +121,57 @@ describe("User Auth Middleware", () => {
 		});
 	});
 
-	// TODO: Revoked keys
-	// TODO: Invalid api keys
+	it("Handles Revoked User Keys", async () => {
+		// Note: Depends on order and position in array. Update test if changed
+		const { user: userMiddleware } = require("./auth-errors.js").default;
+		const userAuthMiddleware = userMiddleware[1];
+
+		const req = {};
+		req.locals = {
+			apiKey: "U-User-C-Old-Key"
+		};
+
+		const res = {};
+		res.send = jest.fn();
+		res.status = jest.fn(() => res);
+
+		const next = jest.fn();
+
+		await userAuthMiddleware(req, res, next);
+		expect(res.status).toBeCalledWith(401);
+		expect(res.send).toBeCalledWith(
+			expect.objectContaining({
+				ok: false,
+				error: "auth_revoked_by_user"
+			})
+		);
+		expect(req.locals.apiKey).toBe("U-User-C-Old-Key");
+	});
+
+	it("Handles Invalid User Keys", async () => {
+		// Note: Depends on order and position in array. Update test if changed
+		const { user: userMiddleware } = require("./auth-errors.js").default;
+		const userAuthMiddleware = userMiddleware[1];
+
+		const req = {};
+		req.locals = {
+			apiKey: "U-Invalid-Key"
+		};
+
+		const res = {};
+		res.send = jest.fn();
+		res.status = jest.fn(() => res);
+
+		const next = jest.fn();
+
+		await userAuthMiddleware(req, res, next);
+		expect(res.status).toBeCalledWith(404);
+		expect(res.send).toBeCalledWith(
+			expect.objectContaining({
+				ok: false,
+				error: "user_not_found"
+			})
+		);
+		expect(req.locals.apiKey).toBe("U-Invalid-Key");
+	});
 });
