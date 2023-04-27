@@ -2,7 +2,7 @@ import { Router } from "express";
 
 const initialRouter = Router();
 
-initialRouter.get("*", (req, res) => {
+initialRouter.use((req, res) => {
 	res.status(503).send({
 		ok: false,
 		error: "server_restarting",
