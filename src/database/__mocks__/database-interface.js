@@ -53,7 +53,7 @@ mockedDBI.setSampleData = () => {
 		makeKey(1, "pw-a", "U-User-A-Key"),
 		makeKey(2, "pw-b", "U-User-B-Key"),
 		makeKey(3, "pw-c", "U-User-C-Old-Key", true),
-		makeKey(4, "pw-c", "U-User-C-Old-Key")
+		makeKey(4, "pw-c", "U-User-C-Key")
 	];
 
 	// Fix auto-indices

@@ -60,7 +60,7 @@ export async function apiKeyRegenerate(oldApiKey) {
 		throw revokedError;
 	}
 
-	tables.apiKeys.find(r => r.api_key === oldApiKeyRow).revoked = true;
+	tables.apiKeys.find(r => r.api_key === oldApiKey).revoked = true;
 	const newApiKey = makeNewApiKey();
 	tables.apiKeys.push({
 		id: autoId("apiKeys"),
