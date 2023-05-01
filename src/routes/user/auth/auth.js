@@ -25,7 +25,7 @@ authRouter.post("/exchange", ensureBodyKey("password", authErrors.no_password_pr
 	});
 });
 
-authRouter.post("/revoke", authMiddleware.user, async (req, res) => {
+authRouter.post("/revoke", authMiddleware.noAuth, async (req, res) => {
 	const oldApiKey = req.locals.apiKey;
 	let newApiKey;
 	try {
