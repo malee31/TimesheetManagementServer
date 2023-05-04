@@ -54,9 +54,6 @@ const userErrors = {
 userRouter.get("/", authMiddleware.user, async (req, res) => {
 	// Return the user object
 	const user = await getUser(req.locals.password);
-	if(!user) {
-		return res.status(404).send(userErrors.user_not_found);
-	}
 
 	return res.status(200).send({
 		ok: true,

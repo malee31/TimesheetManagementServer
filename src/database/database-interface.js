@@ -113,7 +113,7 @@ export async function getLatestSession(password) {
 	// Assumption made that user.session is kept up-to-date
 	const latestSessionRes = await database.singleQueryPromisify("SELECT s.session_id, s.startTime, s.endTime FROM sessions_v2 s RIGHT JOIN users_v2 u ON u.session = s.session_id WHERE u.password = ?", [password]);
 	if(latestSessionRes.length === 0 || latestSessionRes[0].session_id === null) {
-		console.warn("No latest session for user");
+		// console.warn("No latest session for user");
 		return null;
 	}
 	return latestSessionRes[0];

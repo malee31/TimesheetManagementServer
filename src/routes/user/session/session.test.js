@@ -1,5 +1,4 @@
 const request = require("supertest");
-const mockedDBI = require("../../../database/database-interface.js");
 
 describe("DELETE /:sessionid", () => {
 	beforeEach(() => {

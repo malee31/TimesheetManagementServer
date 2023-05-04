@@ -108,6 +108,12 @@ export async function createUser(userObj) {
 		throw newUserError;
 	}
 
+	if(tables.users.some(user => user.password === userObj.password)) {
+		const duplicateError = new Error();
+		duplicateError.code = "ER_DUP_ENTRY";
+		throw duplicateError;
+	}
+
 	// TODO: Mock transaction
 	tables.users.push({
 		id: autoId("users"),
@@ -175,7 +181,7 @@ export async function getLatestSession(password) {
 	const user = tables.users.filter(u => u.password === password);
 	const latestSessionRes = tables.sessions.filter(s => user.some(u => s.session_id === u.session)).map(s => selectObj(s, ["session_id", "startTime", "endTime"]));
 	if(latestSessionRes.length === 0 || latestSessionRes[0].session_id === null) {
-		console.warn("No latest session for user");
+		// console.warn("No latest session for user");
 		return null;
 	}
 	return latestSessionRes[0];
