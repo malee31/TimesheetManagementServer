@@ -180,19 +180,9 @@ describe("Admin Auth Middleware", () => {
 	const ORIGINAL_ENV = process.env;
 
 	beforeEach(() => {
-		jest.resetModules();
-		process.env = {
-			...ORIGINAL_ENV,
-			ADMIN_KEY: "A-Admin-Key"
-		};
-
 		jest.mock("../../database/database-interface.js");
 		const mockedDBI = require("../../database/database-interface.js");
 		mockedDBI.setSampleData();
-	});
-
-	afterAll(() => {
-		process.env = ORIGINAL_ENV;
 	});
 
 	it("Handles Invalid Admin Auth Format", () => {

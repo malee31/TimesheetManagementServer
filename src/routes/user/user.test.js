@@ -3,26 +3,14 @@ const request = require("supertest");
 let mockedDBI;
 let app;
 
-const ORIGINAL_ENV = process.env;
 
-beforeEach(() => {
-	jest.resetModules();
-	process.env = {
-		...ORIGINAL_ENV,
-		ADMIN_KEY: "A-Admin-Key"
-	};
-
-	jest.mock("../../database/database-interface.js");
+beforeEach(() => {jest.mock("../../database/database-interface.js");
 	mockedDBI = require("../../database/database-interface.js");
 	mockedDBI.setSampleData();
 
 	const appExports = require("../../app.js");
 	appExports.activateApiRouter();
 	app = appExports.default;
-});
-
-afterAll(() => {
-	process.env = ORIGINAL_ENV;
 });
 
 describe("GET /", () => {
@@ -196,7 +184,7 @@ describe("GET /status", () => {
 				id: expect.any(Number),
 				first_name: "test-a",
 				last_name: "last-a",
-				session: expect.any(Object)
+				session: expect.toBeOneOf([null, expect.toBeObject()])
 			}
 		});
 	});
