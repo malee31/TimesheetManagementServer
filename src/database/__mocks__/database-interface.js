@@ -35,7 +35,8 @@ mockedDBI.setSampleData = () => {
 	tables.users = [
 		makeUser(1, "test-a", "last-a", "pw-a"),
 		makeUser(2, "test-b", "last-b", "pw-b"),
-		makeUser(3, "test-c", "last-c", "pw-c")
+		makeUser(3, "test-c", "last-c", "pw-c"),
+		makeUser(4, "test-d", "last-d", "pw-d")
 	];
 
 	tables.sessions = [
@@ -53,7 +54,8 @@ mockedDBI.setSampleData = () => {
 		makeKey(1, "pw-a", "U-User-A-Key"),
 		makeKey(2, "pw-b", "U-User-B-Key"),
 		makeKey(3, "pw-c", "U-User-C-Old-Key", true),
-		makeKey(4, "pw-c", "U-User-C-Key")
+		makeKey(4, "pw-c", "U-User-C-Key"),
+		makeKey(5, "pw-d", "U-User-D-Key")
 	];
 
 	// Fix auto-indices

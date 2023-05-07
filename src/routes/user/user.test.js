@@ -4,7 +4,8 @@ let mockedDBI;
 let app;
 
 
-beforeEach(() => {jest.mock("../../database/database-interface.js");
+beforeEach(() => {
+	jest.mock("../../database/database-interface.js");
 	mockedDBI = require("../../database/database-interface.js");
 	mockedDBI.setSampleData();
 
@@ -192,7 +193,39 @@ describe("GET /status", () => {
 
 describe("GET /sessions", () => {
 	it("Successfully Obtains User Sessions", async () => {
+		const res = await request(app)
+			.get("/user/sessions")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer U-User-A-Key");
 
+		expect(res.statusCode).toBe(200);
+		expect(res.body).toMatchObject({
+			ok: true,
+			sessions: expect.toBeArray()
+		});
+
+		res.body.sessions.forEach(session => {
+			expect(session).toMatchObject({
+				session_id: expect.any(Number),
+				startTime: expect.any(Number),
+				endTime: expect.any(Number)
+			});
+		});
+	});
+
+	it("Handles No User Sessions Exist", async () => {
+		const res = await request(app)
+			.get("/user/sessions")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer U-User-D-Key");
+
+		expect(res.statusCode).toBe(200);
+		expect(res.body).toMatchObject({
+			ok: true,
+			sessions: null
+		});
 	});
 });
 
