@@ -155,7 +155,7 @@ userRouter.post("/sessions", [authMiddleware.admin, ensureBodyKeys(["password", 
 	}
 
 	// if(endTime !== null && (isNaN(endTime) || endTime < 0)) {
-	if(endTime === null || isNaN(endTime) || endTime < startTime) {
+	if(endTime !== null && (isNaN(endTime) || endTime < startTime)) {
 		return res.status(400).send(userErrors.invalid_end_time);
 	}
 

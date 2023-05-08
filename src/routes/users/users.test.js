@@ -1,36 +1,31 @@
 const request = require("supertest");
 
-describe("GET /", () => {
-	beforeEach(() => {
-		jest.mock("../../database/database-interface.js");
-		const mockedDBI = require("../../database/database-interface.js");
-		mockedDBI.setSampleData();
-	});
+let mockedDBI;
+let app;
 
+beforeEach(() => {
+	jest.mock("../../database/database-interface.js");
+	mockedDBI = require("../../database/database-interface.js");
+	mockedDBI.setSampleData();
+
+	const appExports = require("../../app.js");
+	appExports.activateApiRouter();
+	app = appExports.default;
+});
+
+describe("GET /", () => {
 	it("Fetches All Users", () => {
 		// return true;
 	});
 });
 
 describe("GET /status", () => {
-	beforeEach(() => {
-		jest.mock("../../database/database-interface.js");
-		const mockedDBI = require("../../database/database-interface.js");
-		mockedDBI.setSampleData();
-	});
-
 	it("Fetches All Users And Statuses", () => {
 		// return true;
 	});
 });
 
 describe("GET /sessions", () => {
-	beforeEach(() => {
-		jest.mock("../../database/database-interface.js");
-		const mockedDBI = require("../../database/database-interface.js");
-		mockedDBI.setSampleData();
-	});
-
 	it("Missing Count", () => {
 		// return true;
 	});

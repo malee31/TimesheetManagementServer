@@ -33,9 +33,9 @@ mockedDBI.setSampleData = () => {
 	});
 
 	tables.users = [
-		makeUser(1, "test-a", "last-a", "pw-a"),
-		makeUser(2, "test-b", "last-b", "pw-b"),
-		makeUser(3, "test-c", "last-c", "pw-c"),
+		makeUser(1, "test-a", "last-a", "pw-a", 1),
+		makeUser(2, "test-b", "last-b", "pw-b", 2),
+		makeUser(3, "test-c", "last-c", "pw-c", 4),
 		makeUser(4, "test-d", "last-d", "pw-d")
 	];
 

@@ -3,7 +3,6 @@ const request = require("supertest");
 let mockedDBI;
 let app;
 
-
 beforeEach(() => {
 	jest.mock("../../database/database-interface.js");
 	mockedDBI = require("../../database/database-interface.js");
@@ -165,8 +164,40 @@ describe("DELETE /", () => {
 });
 
 describe("PATCH /password", () => {
+	// TODO: Integration test the new password
+	// TODO: Integration test the old API keys
 	it("Successfully Changes Password", async () => {
+		const res = await request(app)
+			.patch("/user/password")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer U-User-A-Key")
+			.send({
+				new_password: "pw-A-new"
+			});
 
+		expect(res.statusCode).toBe(200);
+		expect(res.body).toMatchObject({
+			ok: true,
+			message: "Password Successfully Changed"
+		});
+	});
+
+	it("Handles Password Conflicts", async () => {
+		const res = await request(app)
+			.patch("/user/password")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer U-User-A-Key")
+			.send({
+				new_password: "pw-d"
+			});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.body).toMatchObject({
+			ok: false,
+			error: "password_in_use"
+		});
 	});
 });
 
@@ -232,23 +263,109 @@ describe("GET /sessions", () => {
 describe("POST /sessions", () => {
 	// Consider behavior with nonexistent passwords
 	it("Handles Missing Password", async () => {
+		const res = await request(app)
+			.post("/user/sessions")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer A-Admin-Key")
+			.send({
+				password: "",
+				startTime: 0,
+				endTime: 100,
+			});
 
+		expect(res.statusCode).toBe(400);
+		expect(res.body).toMatchObject({
+			ok: false,
+			error: "no_password_provided"
+		});
 	});
 
-	it("Handles Missing/Invalid Start Time", async () => {
+	// TODO: Consider behavior for invalid passwords
+	// TODO: Consider conflicts/identical/overlapping entries
 
+	it("Handles Missing/Invalid Start Time", async () => {
+		const res = await request(app)
+			.post("/user/sessions")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer A-Admin-Key")
+			.send({
+				password: "pw-a",
+				startTime: -1,
+				endTime: 100,
+			});
+
+		expect(res.statusCode).toBe(400);
+		expect(res.body).toMatchObject({
+			ok: false,
+			error: "invalid_start_time"
+		});
 	});
 
 	it("Handles Invalid End Time", async () => {
+		const res = await request(app)
+			.post("/user/sessions")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer A-Admin-Key")
+			.send({
+				password: "pw-a",
+				startTime: 100,
+				endTime: 99,
+			});
 
+		expect(res.statusCode).toBe(400);
+		expect(res.body).toMatchObject({
+			ok: false,
+			error: "invalid_end_time"
+		});
 	});
 
 	it("Handles Missing End Times", async () => {
+		const res = await request(app)
+			.post("/user/sessions")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer A-Admin-Key")
+			.send({
+				password: "pw-a",
+				startTime: 100,
+				endTime: null
+			});
 
+		expect(res.statusCode).toBe(200);
+		expect(res.body).toMatchObject({
+			ok: true,
+			session: {
+				session_id: expect.any(Number),
+				startTime: 100,
+				endTime: null
+			}
+		});
 	});
 
 	// TODO: Consider handling ongoing sessions being overwritten, overlaps, or strange history
 	it("Successfully Adds Arbitrary Sessions", async () => {
+		const res = await request(app)
+			.post("/user/sessions")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer A-Admin-Key")
+			.send({
+				password: "pw-a",
+				startTime: 100,
+				endTime: 200
+			});
 
+		expect(res.statusCode).toBe(200);
+		expect(res.body).toMatchObject({
+			ok: true,
+			session: {
+				session_id: expect.any(Number),
+				startTime: 100,
+				endTime: 200
+			}
+		});
 	});
 });

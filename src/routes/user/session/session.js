@@ -1,7 +1,7 @@
 import { Router } from "express";
 import authMiddleware from "../../middleware/auth-errors.js";
-import { createSession, deleteSession, getLatestSession, patchSession } from "../../../database/database-interface.js";
 import { ensureBodyKey } from "../../middleware/body-errors.js";
+import { createSession, deleteSession, getLatestSession, patchSession } from "../../../database/database-interface.js";
 
 const sessionRouter = Router();
 
@@ -18,6 +18,10 @@ const sessionErrors = {
 		ok: false,
 		error: "invalid_session_method"
 	},
+	malformed_session_id: {
+		ok: false,
+		error: "malformed_session_id"
+	},
 	invalid_session_id: {
 		ok: false,
 		error: "invalid_session_id"
@@ -29,6 +33,10 @@ sessionRouter.delete("/:sessionid", authMiddleware.admin, async (req, res) => {
 	const sessionId = Number(req.params["sessionid"]);
 
 	if(isNaN(sessionId)) {
+		return res.status(400).send(sessionErrors.malformed_session_id);
+	}
+
+	if(sessionId <= 0) {
 		return res.status(400).send(sessionErrors.invalid_session_id);
 	}
 
@@ -44,6 +52,7 @@ sessionRouter.delete("/:sessionid", authMiddleware.admin, async (req, res) => {
 		console.warn(`Unknown error while deleting session ${sessionId}:`);
 		console.error(err);
 	}
+
 	return res.status(200).send({
 		ok: true,
 		old_session_id: sessionId
