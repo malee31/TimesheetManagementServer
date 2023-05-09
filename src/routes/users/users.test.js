@@ -58,8 +58,18 @@ describe("GET /status", () => {
 });
 
 describe("GET /sessions", () => {
-	it("Missing Count", () => {
-		// return true;
+	it("Missing Count", async () => {
+		const res = await request(app)
+			.get("/users/sessions?page=1")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", "Bearer A-Admin-Key")
+			.expect(400);
+
+		expect(res.body).toMatchObject({
+			ok: false,
+			error: "no_count_provided"
+		});
 	});
 
 	it("Missing Page", () => {
