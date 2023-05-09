@@ -14,14 +14,46 @@ beforeEach(() => {
 });
 
 describe("GET /", () => {
-	it("Fetches All Users", () => {
-		// return true;
+	it("Fetches All Users", async () => {
+		const res = await request(app)
+			.get("/users")
+			.expect(200);
+
+		expect(res.body).toMatchObject({
+			ok: true,
+			users: expect.arrayContaining([
+				expect.objectContaining({
+					id: expect.any(Number),
+					first_name: expect.any(String),
+					last_name: expect.any(String),
+					session: expect.any(Number),
+				})
+			])
+		});
 	});
 });
 
 describe("GET /status", () => {
-	it("Fetches All Users And Statuses", () => {
-		// return true;
+	it("Fetches All Users And Statuses", async () => {
+		const res = await request(app)
+			.get("/users/status")
+			.expect(200);
+
+		expect(res.body).toMatchObject({
+			ok: true,
+			users: expect.arrayContaining([
+				expect.objectContaining({
+					id: expect.any(Number),
+					first_name: expect.any(String),
+					last_name: expect.any(String),
+					session: expect.objectContaining({
+						session_id: expect.any(Number),
+						startTime: expect.any(Number),
+						endTime: expect.toBeOneOf([null, expect.any(Number)])
+					})
+				})
+			])
+		});
 	});
 });
 
