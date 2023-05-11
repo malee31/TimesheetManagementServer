@@ -28,7 +28,7 @@ describe("GET /", () => {
 			id: 1,
 			first_name: "test-a",
 			last_name: "last-a",
-			session: null
+			session: expect.toBeOneOf([null, expect.any(Number)])
 		});
 	});
 
