@@ -1,12 +1,15 @@
-describe("Auth Middleware", () => {
-	beforeEach(() => {
-		jest.mock("../../database/database-interface.js");
-		const mockedDBI = require("../../database/database-interface.js");
-		mockedDBI.setSampleData();
-	});
+let authMiddleware;
 
+beforeEach(() => {
+	jest.mock("../../database/database-interface.js");
+	const mockedDBI = require("../../database/database-interface.js");
+	mockedDBI.setSampleData();
+	authMiddleware = require("./auth-errors.js").default;
+});
+
+describe("Auth Middleware", () => {
 	it("Handles No Auth", () => {
-		const { noAuth: authExistsMiddleware } = require("./auth-errors.js").default;
+		const { noAuth: authExistsMiddleware } = authMiddleware;
 
 		const req = {};
 		req.header = jest.fn(headerName => {
@@ -35,7 +38,7 @@ describe("Auth Middleware", () => {
 	});
 
 	it("Handles Valid User Auth", () => {
-		const { noAuth: authExistsMiddleware } = require("./auth-errors.js").default;
+		const { noAuth: authExistsMiddleware } = authMiddleware;
 
 		const req = {};
 		req.header = jest.fn(headerName => {
@@ -63,15 +66,9 @@ describe("Auth Middleware", () => {
 });
 
 describe("User Auth Middleware", () => {
-	beforeEach(() => {
-		jest.mock("../../database/database-interface.js");
-		const mockedDBI = require("../../database/database-interface.js");
-		mockedDBI.setSampleData();
-	});
-
 	it("Handles Invalid User Auth Format", () => {
 		// Note: Depends on order and position in array. Update test if changed
-		const { user: userMiddleware } = require("./auth-errors.js").default;
+		const { user: userMiddleware } = authMiddleware;
 		const userAuthMiddleware = userMiddleware[1];
 
 		const req = {};
@@ -98,7 +95,7 @@ describe("User Auth Middleware", () => {
 
 	it("Handles Valid User Auth", async () => {
 		// Note: Depends on order and position in array. Update test if changed
-		const { user: userMiddleware } = require("./auth-errors.js").default;
+		const { user: userMiddleware } = authMiddleware;
 		const userAuthMiddleware = userMiddleware[1];
 
 		const req = {};
@@ -123,7 +120,7 @@ describe("User Auth Middleware", () => {
 
 	it("Handles Revoked User Keys", async () => {
 		// Note: Depends on order and position in array. Update test if changed
-		const { user: userMiddleware } = require("./auth-errors.js").default;
+		const { user: userMiddleware } = authMiddleware;
 		const userAuthMiddleware = userMiddleware[1];
 
 		const req = {};
@@ -150,7 +147,7 @@ describe("User Auth Middleware", () => {
 
 	it("Handles Invalid User Keys", async () => {
 		// Note: Depends on order and position in array. Update test if changed
-		const { user: userMiddleware } = require("./auth-errors.js").default;
+		const { user: userMiddleware } = authMiddleware;
 		const userAuthMiddleware = userMiddleware[1];
 
 		const req = {};
@@ -177,17 +174,9 @@ describe("User Auth Middleware", () => {
 });
 
 describe("Admin Auth Middleware", () => {
-	const ORIGINAL_ENV = process.env;
-
-	beforeEach(() => {
-		jest.mock("../../database/database-interface.js");
-		const mockedDBI = require("../../database/database-interface.js");
-		mockedDBI.setSampleData();
-	});
-
 	it("Handles Invalid Admin Auth Format", () => {
 		// Note: Depends on order and position in array. Update test if changed
-		const { admin: adminMiddleware } = require("./auth-errors.js").default;
+		const { admin: adminMiddleware } = authMiddleware;
 		const adminAuthMiddleware = adminMiddleware[1];
 
 		const req = {};
@@ -214,7 +203,7 @@ describe("Admin Auth Middleware", () => {
 
 	it("Handles Valid Admin Auth", async () => {
 		// Note: Depends on order and position in array. Update test if changed
-		const { admin: adminMiddleware } = require("./auth-errors.js").default;
+		const { admin: adminMiddleware } = authMiddleware;
 		const adminAuthMiddleware = adminMiddleware[1];
 
 		const req = {};
@@ -236,7 +225,7 @@ describe("Admin Auth Middleware", () => {
 
 	it("Handles Invalid Admin Keys", async () => {
 		// Note: Depends on order and position in array. Update test if changed
-		const { admin: adminMiddleware } = require("./auth-errors.js").default;
+		const { admin: adminMiddleware } = authMiddleware;
 		const adminAuthMiddleware = adminMiddleware[1];
 
 		const req = {};
