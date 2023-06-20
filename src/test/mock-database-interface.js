@@ -138,6 +138,15 @@ export async function changePassword(oldPassword, newPassword) {
 	// TODO: Wrap in a transaction
 	// TODO: Ensure no password collisions
 	console.log(`Update ${oldPassword} to ${newPassword}`);
+	const apiKeyRows = tables.apiKeys.filter(k => k.password === newPassword);
+	console.log(apiKeyRows)
+	if(apiKeyRows.length !== 0) {
+		return {
+			ok: false,
+			error: "password_in_use"
+		}
+	}
+
 	tables.users
 		.filter(u => u.password === oldPassword)
 		.forEach(u => {
@@ -149,6 +158,10 @@ export async function changePassword(oldPassword, newPassword) {
 		.forEach(k => {
 			k.password = newPassword;
 		});
+
+	return {
+		ok: true
+	};
 }
 
 export async function deleteUser(password) {

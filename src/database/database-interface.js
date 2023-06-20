@@ -83,9 +83,19 @@ export async function createUser(userObj) {
 export async function changePassword(oldPassword, newPassword) {
 	// TODO: Wrap in a transaction
 	// TODO: Ensure no password collisions
-	console.log(`Update ${oldPassword} to ${newPassword}`)
+	console.log(`Update ${oldPassword} to ${newPassword}`);
+	const apiKeyRows = await database.singleQueryPromisify("SELECT * FROM api_keys_v2 WHERE password = ?", [newPassword]);
+	if(apiKeyRows.length !== 0) {
+		return {
+			ok: false,
+			error: "password_in_use"
+		}
+	}
 	await database.singleQueryPromisify("UPDATE users_v2 SET password = ? WHERE password = ?", [newPassword, oldPassword]);
 	await database.singleQueryPromisify("UPDATE api_keys_v2 SET password = ? WHERE password = ?", [newPassword, oldPassword]);
+	return {
+		ok: true
+	};
 }
 
 export async function deleteUser(password) {

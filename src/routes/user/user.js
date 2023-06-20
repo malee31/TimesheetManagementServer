@@ -85,11 +85,24 @@ userRouter.post("/", [authMiddleware.admin, noBodyErrors], async (req, res) => {
 
 userRouter.patch("/password", [authMiddleware.user, ensureBodyKey("new_password", userErrors.no_new_password)], async (req, res) => {
 	// TODO: Type check new_password and handle errors
-	await changePassword(req.locals.password, req.body["new_password"]);
-	return res.status(200).send({
-		ok: true,
-		message: "Password Successfully Changed"
-	});
+	const changeRequest = await changePassword(req.locals.password, req.body["new_password"]);
+	if(changeRequest.ok) {
+		return res.status(200).send({
+			ok: true,
+			message: "Password Successfully Changed"
+		});
+	}
+
+	// Contains the pre-made error from changePassword()
+	if(changeRequest.error === "password_in_use") {
+		return res.status(409).send({
+			ok: false,
+			error: "password_in_use"
+		});
+	}
+
+	// Should never occur
+	throw new Error(JSON.stringify(changeRequest, null, "\t"));
 });
 
 userRouter.delete("/", [authMiddleware.admin, ensureBodyKey("password", userErrors.no_password_provided)], async (req, res) => {
