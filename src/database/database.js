@@ -113,6 +113,7 @@ function transactionQuery(transaction, query, ...args) {
 }
 
 async function createTables() {
+	// TODO: Fix race condition. Just run the code twice if it doesn't work but users must be created before sessions
 	const usersTableCreate = singleQueryPromisify(schemas.users);
 	const sessionsTableCreate = singleQueryPromisify(schemas.sessions);
 	const apiKeysTableCreate = singleQueryPromisify(schemas.apiKeys);
