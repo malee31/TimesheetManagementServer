@@ -1,15 +1,14 @@
-import * as dotenv from "dotenv";
 // Configure SQL credentials from environment variables
-dotenv.config();
 import mysql from "mysql";
 import schemas from "./table-schemas.js";
+import { MYSQL_DATABASE, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_USER } from "../../config.js";
 
 // Note: Before use, guarantee that the connection is active and the tables have been set up with start()
 export const pool = mysql.createPool({
-	host: process.env.MYSQL_HOST,
-	user: process.env.MYSQL_USER,
-	password: process.env.MYSQL_PASSWORD,
-	database: process.env.MYSQL_DATABASE,
+	host: MYSQL_HOST,
+	user: MYSQL_USER,
+	password: MYSQL_PASSWORD,
+	database: MYSQL_DATABASE,
 	connectionLimit: 10
 });
 

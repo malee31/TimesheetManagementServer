@@ -2,8 +2,10 @@ const config = {
 	transform: {
 		"^.+\\.[t|j]s$": "babel-jest"
 	},
-	globalSetup: "<rootDir>/jest-setup.js",
-	setupFilesAfterEnv: ["<rootDir>/jest-extend.js"]
+	setupFilesAfterEnv: [
+		"<rootDir>/jest-extend.js",
+		"<rootDir>/jest-setup.js"
+	]
 };
 
 export default config;

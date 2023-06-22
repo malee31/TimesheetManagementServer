@@ -137,9 +137,7 @@ export async function createUser(userObj) {
 export async function changePassword(oldPassword, newPassword) {
 	// TODO: Wrap in a transaction
 	// TODO: Ensure no password collisions
-	console.log(`Update ${oldPassword} to ${newPassword}`);
 	const apiKeyRows = tables.apiKeys.filter(k => k.password === newPassword);
-	console.log(apiKeyRows)
 	if(apiKeyRows.length !== 0) {
 		return {
 			ok: false,
@@ -183,7 +181,6 @@ export async function listSessions(password) {
 		.map(s => selectObj(s, ["session_id", "startTime", "endTime"]));
 
 	if(userSessions.length === 0) {
-		console.warn("No sessions for user");
 		return null;
 	}
 	return userSessions;

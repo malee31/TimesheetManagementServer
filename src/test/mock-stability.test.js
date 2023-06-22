@@ -1,5 +1,9 @@
 jest.mock("../database/database-interface.js");
 
+test("Testing Config Mock Working", async () => {
+	expect(require("../../config.js").TESTING).toEqual(true);
+});
+
 test("Empty Database Mock Working", async () => {
 	const mockedDBI = require("../database/database-interface.js");
 	expect(mockedDBI.isMocked).toBeTruthy();

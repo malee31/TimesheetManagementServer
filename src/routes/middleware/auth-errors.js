@@ -1,9 +1,5 @@
-import * as dotenv from "dotenv";
+import { ADMIN_KEY } from "../../../config.js";
 import { apiKeyLookup } from "../../database/database-interface.js";
-// Load in admin password from env.
-// TODO: Consider not hard-coding the admin password in env
-dotenv.config();
-const ADMIN_KEY = process.env.ADMIN_KEY;
 
 const authErrors = {
 	not_authed: {

@@ -1,5 +1,6 @@
 import database from "./database.js";
 import { makeNewApiKey } from "../utils/apiKey.js";
+import { TESTING } from "../../config";
 
 // This file acts as an abstraction layer between the database and the code for easy compatibility with any database
 // This file should contain methods to interact and manipulate database information
@@ -113,7 +114,7 @@ export async function deleteUser(password) {
 export async function listSessions(password) {
 	const userSessions = await database.singleQueryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ?", [password]);
 	if(userSessions.length === 0) {
-		console.warn("No sessions for user");
+		if(!TESTING) console.warn("No sessions for user");
 		return null;
 	}
 	return userSessions;
