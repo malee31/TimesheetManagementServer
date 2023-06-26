@@ -13,7 +13,7 @@ Run the unit tests by using `npm test`.
 
 ## Writing Tests
 Write any `*.test.js` unit test files next to where the corresponding `*.js` file is located within the project files.  
-For integration tests and end-to-end tests, place them in the root of the project under their corresponding folders (TBA).  
+For end-to-end tests, place them in the root of the project under their corresponding folders.  
 
 A note about tests that interact with the database: Do not assume that the test holds the only connection to the database at any given time.  
 As Jest runs all the tests in parallel, there's no guarantee that there will be one fewer rows in a table after deleting a row the next time you check as an insert may have occurred in the meantime.  
