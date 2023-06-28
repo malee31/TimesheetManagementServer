@@ -1,7 +1,7 @@
 // Configure SQL credentials from environment variables
 import mysql from "mysql";
 import schemas from "./table-schemas.js";
-import { MYSQL_DATABASE, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_USER } from "../../config.js";
+import { MYSQL_DATABASE, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_USER, TESTING } from "../../config.js";
 
 // Note: Before use, guarantee that the connection is active and the tables have been set up with start()
 export const pool = mysql.createPool({
@@ -125,7 +125,9 @@ async function createTables() {
 }
 
 async function start() {
-	console.log("Creating And Testing A Connection");
+	if(!TESTING) {
+		console.log("Creating And Testing A Connection");
+	}
 	// Test connection
 	await singleQueryPromisify("SELECT 1 + 1 AS solution")
 		.then(() => {
@@ -137,10 +139,14 @@ async function start() {
 		});
 
 	// Create tables if they do not already exist
-	console.log("Setting Up Tables");
+	if(!TESTING) {
+		console.log("Setting Up Tables");
+	}
 	await createTables()
 		.then(() => {
-			console.log("Table Existence Confirmed");
+			if(!TESTING) {
+				console.log("Table Existence Confirmed");
+			}
 		})
 		.catch(err => {
 			console.warn("Failed To Create Tables:");
