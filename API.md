@@ -22,7 +22,7 @@ Response:
 - (200) User object is returned. Not in a `user` key
 
 Errors: 
-- 404 `user_not_found` when the user with the corresponding auth header does not exist
+- (404) `user_not_found` when the user with the corresponding auth header does not exist
 
 POST /user - Add user (Admin auth header)  
 Input: New user object in body  
@@ -30,9 +30,9 @@ Response:
 - (200) New user object is returned (Same form as `/user`)
 
 Errors:
-- 401 `not_authed` when no admin header is provided
-- 401 `invalid_admin_auth` when admin header is invalid
-- 409 `user_already_exists` when a user with the same password exists
+- (401) `not_authed` when no admin header is provided
+- (401) `invalid_admin_auth` when admin header is invalid
+- (409) `user_already_exists` when a user with the same password exists
 
 PUT /user - Edit user (Changing passwords etc) (Auth header)  
 Input: New user object in body  
@@ -40,16 +40,16 @@ Response:
 - (200) New user object is returned (Same form as `/user`)
 
 Errors:
-- 401 `not_authed` when no admin header is provided
-- 401 `invalid_admin_auth` when admin header is invalid
-- 404 `user_not_found` when no user with the provided auth header exists
+- (401) `not_authed` when no admin header is provided
+- (401) `invalid_admin_auth` when admin header is invalid
+- (404) `user_not_found` when no user with the provided auth header exists
 
 (Option) PATCH /user/password - Alternative user edit options (Changing passwords etc) (Auth header)  
 Response:
 - (204) No content is returned. Success
 
 Errors:
-- 422 `invalid_password` Password is invalid. Other errors may be more specific in the future
+- (422) `invalid_password` Password is invalid. Other errors may be more specific in the future
 
 DELETE /user - Delete the user (Admin auth header)
 Response:
@@ -59,24 +59,24 @@ Warnings:
 - (204) `user_already_deleted` User has already been deleted. No content is returned
 
 Errors:
-- 401 `not_authed` when no admin header is provided
-- 401 `invalid_admin_auth` when admin header is invalid
+- (401) `not_authed` when no admin header is provided
+- (401) `invalid_admin_auth` when admin header is invalid
 
 GET /user/sessions - All user sessions (Auth header)
 Response:
 - (200) List of sessions in the `sessions` key
 
 Errors:
-- 401 `not_authed` when no auth header is provided
-- 404 `user_not_found` when no user with a matching auth header is found
+- (401) `not_authed` when no auth header is provided
+- (404) `user_not_found` when no user with a matching auth header is found
 
 GET /users/sessions - All user sessions grouped by user (Admin auth header)
 Response:
 - (200) All sessions from all users in `[user id]: [sessions]` format
 
 Errors:
-- 401 `not_authed` when no admin auth header is provided
-- 401 `invalid_admin_auth` when an invalid admin auth header is provided
+- (401) `not_authed` when no admin auth header is provided
+- (401) `invalid_admin_auth` when an invalid admin auth header is provided
 
 POST /user/sessions - For creating a completely new and arbitrary session (Admin auth header)
 Input: A complete session object under the `session` key and the target user's identifier as `user_id`    
@@ -84,18 +84,18 @@ Response:
 - (200) New session is returned
 
 Errors:
-- 401 `not_authed` when no auth header is provided
-- 401 `invalid_admin_auth` when an invalid admin auth header is provided
-- 404 `user_not_found` when no user with a matching auth header is found
-- 422 `user_not_specified` when no target user to add the session to is specified
+- (401) `not_authed` when no auth header is provided
+- (401) `invalid_admin_auth` when an invalid admin auth header is provided
+- (404) `user_not_found` when no user with a matching auth header is found
+- (422) `user_not_specified` when no target user to add the session to is specified
 
 DELETE /user/session/:session-id - For removing a specific session (Admin auth header)  
 Response:
 - (204) No content returned. Successfully deleted
 
 Errors:
-- 401 `not_authed` when no admin auth header is provided
-- 401 `invalid_admin_auth` when an invalid admin auth header is provided
+- (401) `not_authed` when no admin auth header is provided
+- (401) `invalid_admin_auth` when an invalid admin auth header is provided
 
 GET /user/session/latest - Latest session (Auth header)  
 Response:
@@ -105,8 +105,8 @@ Warnings:
 - (204) `NO_SESSIONS` No session is found
 
 Errors:
-- 401 `not_authed` when no auth header is provided
-- 404 `user_not_found` when no user with a matching auth header is found
+- (401) `not_authed` when no auth header is provided
+- (404) `user_not_found` when no user with a matching auth header is found
 
 PATCH /user/session/latest - Switch to log out (Auth header)  
 Input: Use `method` key for `sign_in` or `sign_out`  
@@ -114,8 +114,8 @@ Response:
 - (200) Success. Returns the updated session even if no changes were made
 
 Errors:
-- 401 `not_authed` when no auth header is provided
-- 404 `user_not_found` when no user with a matching auth header is found
+- (401) `not_authed` when no auth header is provided
+- (404) `user_not_found` when no user with a matching auth header is found
 
 POST /user/auth/exchange - Given a password, returns a randomly generated, valid api key that does not expire for the user  
 Input: Send password in body in the `password` key  
@@ -123,12 +123,12 @@ Response:
 - (200) API key is provided in the `api_key` field
 
 Errors:
-- 401 `invalid_password` No user with this password exists
+- (401) `invalid_password` No user with this password exists
 
 POST /user/auth/revoke - Revokes and regenerates the api key  
 Errors:
-- 401 `not_authed` when no auth header is provided
-- 404 `user_not_found` when no user with a matching auth header is found
+- (401) `not_authed` when no auth header is provided
+- (404) `user_not_found` when no user with a matching auth header is found
 
 Response:
 - (200) Successfully revoked API key. Returns new key under the `new_api_key` key
