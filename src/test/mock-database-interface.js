@@ -57,7 +57,6 @@ export async function apiKeyExchange(password) {
 }
 
 export async function apiKeyRegenerate(oldApiKey) {
-	// TODO: Use transactions for SQL for rollback support
 	const oldApiKeyQuery = tables.apiKeys.filter(r => r.api_key === oldApiKey);
 	const oldApiKeyRow = oldApiKeyQuery[0];
 	if(oldApiKeyRow["revoked"]) {
@@ -120,7 +119,6 @@ export async function createUser(userObj) {
 		throw duplicateError;
 	}
 
-	// TODO: Mock transaction
 	tables.users.push({
 		id: autoId("users"),
 		first_name: userArgs[0],
@@ -141,8 +139,6 @@ export async function createUser(userObj) {
 }
 
 export async function changePassword(oldPassword, newPassword) {
-	// TODO: Wrap in a transaction
-	// TODO: Ensure no password collisions
 	const apiKeyRows = tables.apiKeys.filter(k => k.password === newPassword);
 	if(apiKeyRows.length !== 0) {
 		return {
@@ -169,7 +165,6 @@ export async function changePassword(oldPassword, newPassword) {
 }
 
 export async function deleteUser(password) {
-	// TODO: Wrap in a transaction
 	const oldLen = tables.users.length;
 	tables.users = tables.users.filter(u => u.password !== password);
 	if(oldLen === tables.users.length) {

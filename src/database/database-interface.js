@@ -21,7 +21,6 @@ export async function apiKeyExchange(password) {
 }
 
 export async function apiKeyRegenerate(oldApiKey) {
-	// TODO: Use transactions for SQL for rollback support
 	const oldApiKeyQuery = await database.singleQueryPromisify("SELECT * FROM api_keys_v2 WHERE api_key = ?", [oldApiKey]);
 	const oldApiKeyRow = oldApiKeyQuery[0];
 	if(oldApiKeyRow["revoked"]) {
@@ -30,16 +29,18 @@ export async function apiKeyRegenerate(oldApiKey) {
 		throw revokedError;
 	}
 
-	await database.singleQueryPromisify("UPDATE api_keys_v2 SET revoked = TRUE WHERE api_key = ?", [oldApiKey]);
+	const transaction = await database.transactionPromisify();
+	await database.transactionQuery(transaction, "UPDATE api_keys_v2 SET revoked = TRUE WHERE api_key = ?", [oldApiKey]);
 	const newApiKey = makeNewApiKey();
-	await database.singleQueryPromisify("INSERT INTO api_keys_v2 VALUES(NULL, ?, ?, FALSE)", [oldApiKeyRow["password"], newApiKey]);
+	await database.transactionQuery(transaction, "INSERT INTO api_keys_v2 VALUES(NULL, ?, ?, FALSE)", [oldApiKeyRow["password"], newApiKey]);
+	await transaction.commit();
 
 	return newApiKey;
 }
 
 export async function getAllUsers() {
 	const users = await database.singleQueryPromisify("SELECT id, first_name, last_name, session FROM users_v2");
-	if(users.length === 0) {
+	if(!TESTING && users.length === 0) {
 		console.warn("No users in the database");
 	}
 	return users;
@@ -82,33 +83,45 @@ export async function createUser(userObj) {
 }
 
 export async function changePassword(oldPassword, newPassword) {
-	// TODO: Wrap in a transaction
-	// TODO: Ensure no password collisions
-	console.log(`Update ${oldPassword} to ${newPassword}`);
+	// Note: Leaks semi-sensitive information into logs
+	if(!TESTING) {
+		console.log(`Update ${oldPassword} to ${newPassword}`);
+	}
+
 	const apiKeyRows = await database.singleQueryPromisify("SELECT * FROM api_keys_v2 WHERE password = ?", [newPassword]);
 	if(apiKeyRows.length !== 0) {
+		// Note: Leaks semi-sensitive information into logs
+		if(!TESTING) {
+			console.log(`Reject password change resulting in a collision for ${newPassword}`);
+		}
+
 		return {
 			ok: false,
 			error: "password_in_use"
 		}
 	}
-	await database.singleQueryPromisify("UPDATE users_v2 SET password = ? WHERE password = ?", [newPassword, oldPassword]);
-	await database.singleQueryPromisify("UPDATE api_keys_v2 SET password = ? WHERE password = ?", [newPassword, oldPassword]);
+
+	const transaction = await database.transactionPromisify();
+	await database.transactionQuery(transaction, "UPDATE users_v2 SET password = ? WHERE password = ?", [newPassword, oldPassword]);
+	await database.transactionQuery(transaction, "UPDATE api_keys_v2 SET password = ? WHERE password = ?", [newPassword, oldPassword]);
+	await transaction.commit();
+
 	return {
 		ok: true
 	};
 }
 
 export async function deleteUser(password) {
-	// TODO: Wrap in a transaction
-	const deleteUser = await database.singleQueryPromisify("DELETE FROM users_v2 WHERE password = ?", [password]);
+	const transaction = await database.transactionPromisify();
+	const deleteUser = await database.transactionQuery(transaction, "DELETE FROM users_v2 WHERE password = ?", [password]);
 	if(deleteUser.affectedRows === 0) {
 		const noUserError = new TypeError("No user with this password");
 		noUserError.code = "already_deleted";
 		throw noUserError;
 	}
 
-	await database.singleQueryPromisify("DELETE FROM api_keys_v2 WHERE password = ?", [password]);
+	await database.transactionQuery(transaction, "DELETE FROM api_keys_v2 WHERE password = ?", [password]);
+	await transaction.commit();
 }
 
 export async function listSessions(password) {
