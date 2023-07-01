@@ -14,7 +14,7 @@ jest.mock("./config.js", () => ({
 	}).parsed
 }));
 
-afterAll(() => {
+afterEach(() => {
 	const config = require("./config.js");
 	// Ensuring that the main database was not modified
 	// If it was modified... oh no... at least you now know it happened
