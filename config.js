@@ -7,7 +7,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-export const TESTING = false;
+export const TESTING = process.env.NODE_ENV === "test";
 // TODO: Consider not hard-coding the admin password in env
 export const ADMIN_KEY = process.env.ADMIN_KEY;
 export const API_PORT = process.env.API_PORT ?? 3000;
