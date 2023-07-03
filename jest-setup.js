@@ -24,7 +24,7 @@ beforeAll(async () => {
 	});
 
 	let mockedDBI = require("./src/database/database-interface.js");
-	console.log("Hi")
+	console.log("TODO: Breakpoint here")
 
 	// TODO: Insert all fixture data
 });
