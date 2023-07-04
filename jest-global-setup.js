@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { _globalTeardown } from "./jest-global-teardown.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,15 +20,16 @@ export default async function globalSetup() {
 	if(fileList.length) {
 		console.warn(`Global setup expected only 1 file from global setup in ${nonceDir} but found ${fileList.length}`);
 		console.warn("This implies that Jest has been run before and interrupted and did not fully teardown in the past");
-		console.warn(`Ensure that your environment has been successfully wiped or rerun teardown alone a couple times and remove the extra files from ${nonceDir}`);
-		console.warn("You have 6 seconds to Ctrl+C to ensure everything has been reset before global setup begins");
-		await new Promise(resolve => setTimeout(resolve, 6000));
+		console.warn("Running global teardown prior to setup to start on a clean slate");
+		await _globalTeardown(nonceDir);
 	}
 
-	console.log(`File inserted in ${global.nonceFile} to ensure that global setup only ran once`);
+	console.log(`File inserted in ${global.nonceFile} to ensure that global setup only runs once`);
 
 	if(!fs.existsSync(global.nonceDir)) {
 		fs.mkdirSync(global.nonceDir, { recursive: true });
 	}
 	fs.writeFileSync(global.nonceFile, "This file existing indicates that Jest tests are either currently running or unexpectedly interrupted at some point.\nIn the case of the latter, you should run global teardown first");
+
+	// TODO: Actual setup
 }
