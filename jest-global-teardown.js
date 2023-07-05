@@ -11,15 +11,11 @@ export default async function globalTeardown() {
 	await _globalTeardown(path.dirname(global.nonceFile), global.nonceFile);
 }
 
-export async function _globalTeardown(nonceDir, nonceFile = "") {
-	console.log("===== Teardown Start =====");
-	// TODO: Actual teardown
-
+function _clearNonce(nonceDir, nonceFile = "") {
 	if(nonceFile) {
 		console.log(`Removing Nonce File from ${nonceFile}`);
 		fs.rmSync(nonceFile);
 	}
-
 
 	console.log("Wiping contents of nonce directory so that setup doesn't complain about teardown not being run next time");
 	const nonceContents = fs.readdirSync(nonceDir);
@@ -29,7 +25,15 @@ export async function _globalTeardown(nonceDir, nonceFile = "") {
 		console.log(`Wiped: ${noncePath}`);
 	}
 	console.log("Successfully wiped nonce directory");
+}
 
+export async function _globalTeardown(nonceDir, nonceFile = "") {
+	console.log("===== Teardown Start =====");
+
+	// TODO: Take a snapshot of the database
+	// TODO: Tear down database
+
+	_clearNonce(nonceDir, nonceFile);
 	console.log("===== Teardown Success =====");
 }
 

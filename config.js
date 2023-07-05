@@ -5,9 +5,19 @@
 
 import * as dotenv from "dotenv";
 
-dotenv.config();
-
 export const TESTING = process.env.NODE_ENV === "test";
+const originalEnv = dotenv.config().parsed;
+if(TESTING) {
+	// TODO: Ensure that at least one MYSQL env variable is overridden by testing.env
+	const testingEnv = dotenv.config({ path: "testing.env", override: true }).parsed || {};
+	const mysqlCredentialsChanged = Object.keys(testingEnv).some(testKey => testKey.startsWith("MYSQL_") && originalEnv[testKey] !== testingEnv[testKey]);
+	if(!mysqlCredentialsChanged && testingEnv.ALLOW_TESTING_ON_PROD !== "true") {
+		console.error("Refusing to run tests on the production database. At least one MYSQL configuration variable must differ in testing.env. \n(Set ALLOW_TESTING_ON_PROD to 'true' to override)");
+		process.exit(1);
+	}
+	dotenv.config({ path: "mock.env", override: true });
+}
+
 // TODO: Consider not hard-coding the admin password in env
 export const ADMIN_KEY = process.env.ADMIN_KEY;
 export const API_PORT = process.env.API_PORT ?? 3000;

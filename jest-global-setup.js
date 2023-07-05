@@ -1,16 +1,31 @@
-import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { v4 as uuidv4 } from "uuid";
 import { _globalTeardown } from "./jest-global-teardown.js";
-
+import * as CONFIG from "./config.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+if(!CONFIG.TESTING) {
+	console.error("Setup is not being run in a testing environment (NODE_ENV should be set to 'test')");
+	console.error("Shutting down to avoid modifying the wrong database");
+	process.exit(1);
+}
+
+console.log(CONFIG)
+
+// Note: This function will NOT be under test coverage so redundant code SHOULD be used to ensure that everything is in order
+//       Attempt to fix any failed checks internally and completely throw or exit the process if the fix cannot be applied
 export default async function globalSetup() {
-	// TODO: Check for test environment and tear it down if it exists. Then set one up
-	// Note: This function will NOT be under test coverage so redundant code SHOULD be used to ensure that everything is in order
-	//       Attempt to fix any failed checks internally and completely throw or exit the process if the fix cannot be applied
+	await _setupNonce()
+
+	// TODO: Initialize database from scratch
+	// TODO: Fill database with test fixtures
+}
+
+// Side effects: Sets paths in global (nonceDir and nonceFile) and sets global.setupUsed to true. Runs teardown if needed
+async function _setupNonce() {
 	global.setupUsed = true;
 	global.nonceDir = path.resolve(__dirname, "private/nonce");
 	global.nonceFile = path.resolve(global.nonceDir, `${uuidv4()}.txt`);
@@ -30,6 +45,4 @@ export default async function globalSetup() {
 		fs.mkdirSync(global.nonceDir, { recursive: true });
 	}
 	fs.writeFileSync(global.nonceFile, "This file existing indicates that Jest tests are either currently running or unexpectedly interrupted at some point.\nIn the case of the latter, you should run global teardown first");
-
-	// TODO: Actual setup
 }
