@@ -5,7 +5,7 @@ expect.extend(matchers);
 // Note: This beforeAll actually runs once before EVERY FILE, not just once for the entire Jest run
 beforeAll(async () => {
 	expect(require("./config.js").TESTING).toBeTrue();
-	jest.isolateModules(async () => {
+	await jest.isolateModulesAsync(async () => {
 		jest.mock("./src/database/database-interface.js");
 		let mockedDBI = require("./src/database/database-interface.js");
 		await expect(mockedDBI.getAllUsers()).resolves.toBeEmpty()
