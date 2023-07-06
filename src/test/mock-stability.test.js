@@ -10,19 +10,19 @@ test("Empty Database Mock Working", async () => {
 	expect(await mockedDBI.getAllUsers()).toEqual([]);
 });
 
-// test("User Insert", () => {
-// 	const mockedDBI = require("../database/database-interface.js");
-//
-// 	expect(() => mockedDBI.createUser({
-// 		firstName: "mock",
-// 		lastName: "test",
-// 		password: "jest",
-// 		session: null
-// 	})).not.toThrow();
-// });
-//
-// test("User Insert Fail", () => {
-// 	const mockedDBI = require("../database/database-interface.js");
-//
-// 	expect(() => mockedDBI.createUser({})).rejects.toThrow();
-// });
+test("User Insert", () => {
+	const mockedDBI = require("../database/database-interface.js");
+
+	expect(() => mockedDBI.createUser({
+		firstName: "mock",
+		lastName: "test",
+		password: "jest",
+		session: null
+	})).not.toThrow();
+});
+
+test("Invalid User Insert Fail", () => {
+	const mockedDBI = require("../database/database-interface.js");
+
+	expect(() => mockedDBI.createUser({})).rejects.toThrow();
+});

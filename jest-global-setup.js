@@ -4,6 +4,8 @@ import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
 import { _globalTeardown } from "./jest-global-teardown.js";
 import * as CONFIG from "./config.js";
+import database from "./src/database/database.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -13,12 +15,13 @@ if(!CONFIG.TESTING) {
 	process.exit(1);
 }
 
-console.log(CONFIG)
-
 // Note: This function will NOT be under test coverage so redundant code SHOULD be used to ensure that everything is in order
 //       Attempt to fix any failed checks internally and completely throw or exit the process if the fix cannot be applied
 export default async function globalSetup() {
-	await _setupNonce()
+	await _setupNonce();
+
+	// Creates tables
+	await database.start();
 
 	// TODO: Initialize database from scratch
 	// TODO: Fill database with test fixtures

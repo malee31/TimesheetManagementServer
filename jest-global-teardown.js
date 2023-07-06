@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import database from "./src/database/database.js";
 
 export default async function globalTeardown() {
 	// TODO: Tear down the test environment in its entirety
@@ -9,6 +10,18 @@ export default async function globalTeardown() {
 	}
 
 	await _globalTeardown(path.dirname(global.nonceFile), global.nonceFile);
+}
+
+export async function _globalTeardown(nonceDir, nonceFile = "") {
+	console.log("===== Teardown Start =====");
+
+	// TODO: Take a snapshot of the database
+	// Tears down the test database
+	await database._dropTables();
+	await database.end();
+
+	_clearNonce(nonceDir, nonceFile);
+	console.log("===== Teardown Success =====");
 }
 
 function _clearNonce(nonceDir, nonceFile = "") {
@@ -25,16 +38,6 @@ function _clearNonce(nonceDir, nonceFile = "") {
 		console.log(`Wiped: ${noncePath}`);
 	}
 	console.log("Successfully wiped nonce directory");
-}
-
-export async function _globalTeardown(nonceDir, nonceFile = "") {
-	console.log("===== Teardown Start =====");
-
-	// TODO: Take a snapshot of the database
-	// TODO: Tear down database
-
-	_clearNonce(nonceDir, nonceFile);
-	console.log("===== Teardown Success =====");
 }
 
 // Run teardown directly if running directly from command line with `node jest-global-teardown.js`

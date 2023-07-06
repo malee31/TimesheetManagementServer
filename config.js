@@ -8,13 +8,16 @@ import * as dotenv from "dotenv";
 export const TESTING = process.env.NODE_ENV === "test";
 const originalEnv = dotenv.config().parsed;
 if(TESTING) {
-	// TODO: Ensure that at least one MYSQL env variable is overridden by testing.env
 	const testingEnv = dotenv.config({ path: "testing.env", override: true }).parsed || {};
+
+	// Ensures that at least one MYSQL env variable is overridden by testing.env
 	const mysqlCredentialsChanged = Object.keys(testingEnv).some(testKey => testKey.startsWith("MYSQL_") && originalEnv[testKey] !== testingEnv[testKey]);
 	if(!mysqlCredentialsChanged && testingEnv.ALLOW_TESTING_ON_PROD !== "true") {
 		console.error("Refusing to run tests on the production database. At least one MYSQL configuration variable must differ in testing.env. \n(Set ALLOW_TESTING_ON_PROD to 'true' to override)");
 		process.exit(1);
 	}
+
+	// Import all Jest environment variables and indicators
 	dotenv.config({ path: "mock.env", override: true });
 }
 

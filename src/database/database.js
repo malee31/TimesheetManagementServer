@@ -1,5 +1,6 @@
 // Configure SQL credentials from environment variables
 import mysql from "mysql";
+import tableNames from "./table-names.js";
 import schemas from "./table-schemas.js";
 import { MYSQL_DATABASE, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_USER, TESTING } from "../../config.js";
 
@@ -124,6 +125,19 @@ async function createTables() {
 	]);
 }
 
+async function dropTables() {
+	const usersTableDrop = singleQueryPromisify(`DROP TABLE ${tableNames.users}`);
+	const apiKeysTableDrop = singleQueryPromisify(`DROP TABLE ${tableNames.api_keys}`);
+	// The users table must be dropped before the sessions table
+	await usersTableDrop;
+	const sessionsTableDrop = singleQueryPromisify(`DROP TABLE ${tableNames.sessions}`);
+
+	await Promise.all([
+		sessionsTableDrop,
+		apiKeysTableDrop
+	]);
+}
+
 async function start() {
 	if(!TESTING) {
 		console.log("Creating And Testing A Connection");
@@ -165,7 +179,8 @@ const database = {
 	pool: pool,
 	singleQueryPromisify: singleQueryPromisify,
 	transactionPromisify: transactionPromisify,
-	transactionQuery: transactionQuery
+	transactionQuery: transactionQuery,
+	_dropTables: dropTables
 };
 
 export default database;
