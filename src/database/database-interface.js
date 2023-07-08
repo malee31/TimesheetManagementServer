@@ -60,6 +60,12 @@ export async function getUser(password) {
 	return users[0];
 }
 
+/**
+ * Creates a new user (No latest session will be added or set)
+ * IMPORTANT: Must ALWAYS work without fail or error since test cases assume that this works when setting up a test database
+ * @param {Object} userObj - Includes a first name, last name, and password as strings. They are all mandatory
+ * @return {Object} Returns the new user object
+ */
 export async function createUser(userObj) {
 	const userArgs = [userObj["firstName"], userObj["lastName"], userObj["password"]]
 		.map(arg => typeof arg === "string" ? arg.trim() : arg);
@@ -143,7 +149,17 @@ export async function getLatestSession(password) {
 	return latestSessionRes[0];
 }
 
-export async function createSession(password, startTime, endTime = null, skipUpdate) {
+/**
+ * Creates a new session for a user
+ * IMPORTANT: Must ALWAYS work without fail or error since test cases assume that this works when setting up a test database
+ * @async
+ * @param {string} password - User's password used to look the user row up
+ * @param {number} startTime - Time in seconds epoch that the person started the session
+ * @param {number|null} [endTime = null] - Time in seconds epoch that the person ended the session
+ * @param {boolean} [skipUpdate = false] - If not explicitly set to true, the new session will be set as the user's latest session
+ * @return {Object} Returns the new session object
+ */
+export async function createSession(password, startTime, endTime = null, skipUpdate=false) {
 	await database.singleQueryPromisify("INSERT INTO sessions_v2 VALUES(NULL, ?, ?, ?)", [password, startTime, endTime]);
 	let newSession;
 	if(endTime === null) {

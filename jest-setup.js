@@ -2,7 +2,8 @@ import * as matchers from "jest-extended";
 
 expect.extend(matchers);
 
-// Note: This beforeAll actually runs once before EVERY FILE, not just once for the entire Jest run
+// Note: beforeAll actually runs once before EVERY FILE, not just once for the entire Jest run
+// These before/afterEach run for EVERY test so don't make it *too* expensive to run. Just write  sanity/smoke checks
 beforeEach(async () => {
 	expect(require("./config.js").TESTING).toBeTrue();
 	await jest.isolateModulesAsync(async () => {
