@@ -8,7 +8,7 @@ beforeEach(async () => {
 	mockedDBI = require("../database/database-interface.js");
 	mockedDBI.setSampleData();
 
-	// await mockedDBI.setupTestingDatabase();
+	await mockedDBI.setupTestingDatabase();
 
 	const appExports = require("../app.js");
 	appExports.activateApiRouter();

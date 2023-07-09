@@ -1,4 +1,5 @@
 import * as matchers from "jest-extended";
+import database from "./src/database/database.js";
 
 expect.extend(matchers);
 
@@ -19,11 +20,15 @@ beforeEach(async () => {
 	});
 });
 
-afterEach(() => {
+afterEach(async () => {
 	// Ensuring that the main database was not modified
 	// If it was modified... oh no... at least you now know it happened
 	expect(require("./config.js").TESTING).toBeTrue();
 
 	// TODO: Validate all the inserts to the test tables
-	// Note: This line can be moved to afterAll or even global teardown if it increases run time too much
+	// Note: This validation can be moved to afterAll or even global teardown if it increases run time too much
+
+	// Take down the database connections for the test
+	const database = require("./src/database/database.js");
+	await database.default.end();
 });

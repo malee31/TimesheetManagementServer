@@ -139,13 +139,12 @@ async function dropTables() {
 }
 
 async function start() {
-	if(!TESTING) {
-		console.log("Creating And Testing A Connection");
-	}
+	if(!TESTING) console.log("Creating And Testing A Connection");
+
 	// Test connection
 	await singleQueryPromisify("SELECT 1 + 1 AS solution")
 		.then(() => {
-			console.log("Successfully Connection Confirmed");
+			if(!TESTING) console.log("Successfully Connection Confirmed");
 		})
 		.catch(err => {
 			console.warn("Failed To Confirm Connection:");
@@ -153,14 +152,10 @@ async function start() {
 		});
 
 	// Create tables if they do not already exist
-	if(!TESTING) {
-		console.log("Setting Up Tables");
-	}
+	if(!TESTING) console.log("Setting Up Tables");
 	await createTables()
 		.then(() => {
-			if(!TESTING) {
-				console.log("Table Existence Confirmed");
-			}
+			if(!TESTING) console.log("Table Existence Confirmed");
 		})
 		.catch(err => {
 			console.warn("Failed To Create Tables:");
@@ -170,7 +165,12 @@ async function start() {
 
 async function end() {
 	// TODO: Add any other cleanup tasks
-	await new Promise(resolve => pool.end(() => resolve()));
+	await new Promise((resolve, reject) => pool.end(err => {
+		if(err) {
+			return reject(err);
+		}
+		resolve()
+	}));
 }
 
 const database = {

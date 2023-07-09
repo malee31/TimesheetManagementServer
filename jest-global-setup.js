@@ -41,7 +41,7 @@ async function _setupNonce() {
 		await _globalTeardown(nonceDir);
 	}
 
-	console.log(`File inserted in ${global.nonceFile} to ensure that global setup only runs once`);
+	console.log(`\nFile inserted in ${global.nonceFile} to ensure that global setup only runs once`);
 
 	if(!fs.existsSync(global.nonceDir)) {
 		fs.mkdirSync(global.nonceDir, { recursive: true });
