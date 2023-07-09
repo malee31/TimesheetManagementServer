@@ -23,7 +23,7 @@ export default async function globalSetup() {
 	// Creates tables
 	await database.start();
 	// All tests can now instantiate their own data with createUser() and createSession()
-	// Tests may import convenience methods from this file's TEST_UTILS export
+	// Tests may import convenience methods from testUtils.js
 }
 
 // Side effects: Sets paths in global (nonceDir and nonceFile) and sets global.setupUsed to true. Runs teardown if needed
@@ -47,45 +47,4 @@ async function _setupNonce() {
 		fs.mkdirSync(global.nonceDir, { recursive: true });
 	}
 	fs.writeFileSync(global.nonceFile, "This file existing indicates that Jest tests are either currently running or unexpectedly interrupted at some point.\nIn the case of the latter, you should run global teardown first");
-}
-
-
-// Convenience wrapper functions. These must NEVER FAIL and will NOT be unit tested. They should be simple wrappers with internal checks and throw on fail
-// This function generates user details to use in tests with optional name overriding. Pass the output directly to createUser()
-function generateTestUserObj(userNameOverrides) {
-	// Ensure that the overrides aren't mis-keyed or typos
-	const hasNonNameKey = Object.keys(userNameOverrides).some(key => !["firstName", "lastName"].includes(key));
-	if(hasNonNameKey) {
-		console.error(userNameOverrides);
-		throw new TypeError("TestCaseError: An unknown key was found in the user object a test attempted to create");
-	}
-
-	// Returns the input to pass down to createUser() to actually create the user in the database
-	return {
-		firstName: userNameOverrides.firstName ?? "Test",
-		lastName: userNameOverrides.lastName ?? "User",
-		password: uuidv4()
-	};
-}
-
-const HOUR_IN_MILLISECONDS = 60 * 60 * 1000;
-// Generates times for createSession(). Map over createSession with (userObj.password, ...generateTimes()) in a Promise.All
-// with the assumption that as the tester, you won't create multiple ongoing sessions
-// Set nullEnd to true if a session is ongoing and stop adding sessions afterwards
-//  optionally setting ongoing to true at the last call
-// Beware of race conditions with ongoing=true (It should run after all other sessions are added)
-function generateTimes(ongoing = false) {
-	// Returns the input to pass down to createSession() to actually create the user in the database
-	const startTime = Date.now();
-	const generatedTimes = [startTime];
-	generatedTimes.push(!ongoing ? startTime + HOUR_IN_MILLISECONDS : null);
-
-	// In [startTime, endTime] format
-	return generatedTimes;
-}
-
-// This is safe to import anywhere without dynamic require. Use these tools for dynamically creating test users and session in tests
-export const TEST_UTILS = {
-	generateTestUserObj,
-	generateTimes
 }
