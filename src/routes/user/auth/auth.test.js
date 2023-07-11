@@ -1,10 +1,13 @@
 const request = require("supertest");
 
 describe("POST /exchange", () => {
-	beforeEach(() => {
+	beforeEach(async () => {
 		jest.mock("../../../database/database-interface.js");
 		const mockedDBI = require("../../../database/database-interface.js");
 		mockedDBI.setSampleData();
+
+		// TODO: Check beforeAll
+		await mockedDBI.setupTestingDatabase();
 	});
 
 	it("Exchanges API Keys", async () => {
@@ -12,17 +15,22 @@ describe("POST /exchange", () => {
 		appExports.activateApiRouter();
 		const app = appExports.default;
 
+		const database = require("../../../database/database-interface.js");
+		const exchangeTestUser = await database.createUser(global._utils.generateTestUserObj("Exchange API Key"));
+		// TODO: Question whether this should really be done. Maybe add another util to generate the select statements to run directly
+		const exchangeApiKey = database.apiKeyExchange(exchangeTestUser.password);
+
 		const res = await request(app)
 			.post("/user/auth/exchange")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.send({ password: "pw-a" });
+			.send({ password: exchangeTestUser.password });
 
 		expect(res.headers["content-type"]).toMatch(/json/);
 		expect(res.statusCode).toBe(200);
 		expect(res.body).toMatchObject({
 			ok: true,
-			api_key: "U-User-A-Key"
+			api_key: exchangeApiKey
 		});
 	});
 });

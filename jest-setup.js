@@ -1,5 +1,7 @@
 import * as matchers from "jest-extended";
-import database from "./src/database/database.js";
+import * as testUtils from "./testUtils.js";
+
+global._utils = testUtils;
 
 expect.extend(matchers);
 
