@@ -5,7 +5,7 @@ import schemas from "./table-schemas.js";
 import { MYSQL_DATABASE, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_USER, TESTING } from "../../config.js";
 
 // Note: Before use, guarantee that the connection is active and the tables have been set up with start()
-export const pool = mysql.createPool({
+let pool = mysql.createPool({
 	host: MYSQL_HOST,
 	user: MYSQL_USER,
 	password: MYSQL_PASSWORD,
@@ -138,7 +138,7 @@ async function dropTables() {
 	]);
 }
 
-async function start() {
+async function start(skipTableCreation = false) {
 	if(!TESTING) console.log("Creating And Testing A Connection");
 
 	// Test connection
@@ -151,16 +151,18 @@ async function start() {
 			console.error(err);
 		});
 
-	// Create tables if they do not already exist
-	if(!TESTING) console.log("Setting Up Tables");
-	await createTables()
-		.then(() => {
-			if(!TESTING) console.log("Table Existence Confirmed");
-		})
-		.catch(err => {
-			console.warn("Failed To Create Tables:");
-			console.error(err);
-		});
+	if(!skipTableCreation) {
+		// Create tables if they do not already exist
+		if(!TESTING) console.log("Setting Up Tables");
+		await createTables()
+			.then(() => {
+				if(!TESTING) console.log("Table Existence Confirmed");
+			})
+			.catch(err => {
+				console.warn("Failed To Create Tables:");
+				console.error(err);
+			});
+	}
 }
 
 async function end() {
@@ -176,7 +178,6 @@ async function end() {
 const database = {
 	start: start,
 	end: end,
-	pool: pool,
 	singleQueryPromisify: singleQueryPromisify,
 	transactionPromisify: transactionPromisify,
 	transactionQuery: transactionQuery,

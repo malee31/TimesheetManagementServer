@@ -18,7 +18,7 @@ describe("POST /exchange", () => {
 		const database = require("../../../database/database-interface.js");
 		const exchangeTestUser = await database.createUser(global._utils.generateTestUserObj("Exchange API Key"));
 		// TODO: Question whether this should really be done. Maybe add another util to generate the select statements to run directly
-		const exchangeApiKey = database.apiKeyExchange(exchangeTestUser.password);
+		const exchangeApiKey = await database.apiKeyExchange(exchangeTestUser.password);
 
 		const res = await request(app)
 			.post("/user/auth/exchange")

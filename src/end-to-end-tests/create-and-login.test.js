@@ -3,10 +3,11 @@ const request = require("supertest");
 let mockedDBI;
 let app;
 
-beforeEach(() => {
+beforeEach(async () => {
 	jest.mock("../database/database-interface.js");
 	mockedDBI = require("../database/database-interface.js");
-	mockedDBI.setSampleData();
+	// TODO: Check beforeAll
+	await mockedDBI.setupTestingDatabase();
 
 	const appExports = require("../app.js");
 	appExports.activateApiRouter();

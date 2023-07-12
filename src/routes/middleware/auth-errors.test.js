@@ -1,9 +1,12 @@
+const mockedDBI = require("../../database/database-interface.js");
+const database = require("../../database/database-interface.js");
 let authMiddleware;
 
-beforeEach(() => {
+beforeEach(async () => {
 	jest.mock("../../database/database-interface.js");
 	const mockedDBI = require("../../database/database-interface.js");
-	mockedDBI.setSampleData();
+	// TODO: Check beforeAll
+	await mockedDBI.setupTestingDatabase();
 	authMiddleware = require("./auth-errors.js").default;
 });
 
@@ -37,13 +40,18 @@ describe("Auth Middleware", () => {
 		expect(next).not.toHaveBeenCalled();
 	});
 
-	it("Handles Valid User Auth", () => {
+	it("Handles Valid User Auth", async () => {
 		const { noAuth: authExistsMiddleware } = authMiddleware;
+
+		const database = require("../../database/database-interface.js");
+		const authUser = await database.createUser(global._utils.generateTestUserObj("Valid User Auth"));
+		// TODO: Question whether this should really be done. Maybe add another util to generate the select statements to run directly
+		const authUserApiKey = await database.apiKeyExchange(authUser.password);
 
 		const req = {};
 		req.header = jest.fn(headerName => {
 			if(headerName.toLowerCase() === "authorization") {
-				return "Bearer U-User-A-Key"
+				return `Bearer ${authUserApiKey}`
 			}
 
 			return undefined;
@@ -60,8 +68,8 @@ describe("Auth Middleware", () => {
 		expect(res.send).not.toBeCalled();
 		expect(next).toHaveBeenCalled();
 		expect(req.locals).toMatchObject({
-			apiKey: "U-User-A-Key"
-		})
+			apiKey: authUserApiKey
+		});
 	});
 });
 
@@ -98,9 +106,14 @@ describe("User Auth Middleware", () => {
 		const { user: userMiddleware } = authMiddleware;
 		const userAuthMiddleware = userMiddleware[1];
 
+		const database = require("../../database/database-interface.js");
+		const authUser = await database.createUser(global._utils.generateTestUserObj("Valid User Auth"));
+		// TODO: Question whether this should really be done. Maybe add another util to generate the select statements to run directly
+		const authUserApiKey = await database.apiKeyExchange(authUser.password);
+
 		const req = {};
 		req.locals = {
-			apiKey: "U-User-A-Key"
+			apiKey: authUserApiKey
 		};
 
 		const res = {};
@@ -113,12 +126,13 @@ describe("User Auth Middleware", () => {
 		expect(res.status).not.toBeCalled();
 		expect(res.send).not.toBeCalled();
 		expect(req.locals).toMatchObject({
-			apiKey: "U-User-A-Key",
-			password: "pw-a"
+			apiKey: authUserApiKey,
+			password: authUser.password
 		});
 	});
 
 	it("Handles Revoked User Keys", async () => {
+		// TODO: Fix since there's no way to inject a revoked key into the database right now
 		// Note: Depends on order and position in array. Update test if changed
 		const { user: userMiddleware } = authMiddleware;
 		const userAuthMiddleware = userMiddleware[1];

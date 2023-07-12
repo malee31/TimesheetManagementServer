@@ -6,8 +6,7 @@ let app;
 beforeEach(async () => {
 	jest.mock("../database/database-interface.js");
 	mockedDBI = require("../database/database-interface.js");
-	mockedDBI.setSampleData();
-
+	// TODO: Check beforeAll
 	await mockedDBI.setupTestingDatabase();
 
 	const appExports = require("../app.js");
@@ -17,14 +16,14 @@ beforeEach(async () => {
 
 it("Log In + Sign In", async () => {
 	// TODO: Skip creating a user and use a pre-made user
-	const e2ePassword = "e2e-test-password";
+	const e2ePassword = "e2e-login-test-password";
 	const createRes = await request(app)
 		.post("/user")
 		.set("Accept", "application/json")
 		.set("Content-Type", "application/json; charset=utf-8")
 		.set("Authorization", "Bearer A-Admin-Key")
 		.send({
-			firstName: "e2e-test-user",
+			firstName: "e2e-login-test-user",
 			lastName: "e2e-last-name",
 			password: e2ePassword
 		});

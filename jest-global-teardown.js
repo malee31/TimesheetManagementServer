@@ -17,6 +17,7 @@ export async function _globalTeardown(nonceDir, nonceFile = "") {
 
 	// TODO: Take a snapshot of the database
 	// Tears down the test database
+	await database.start(true);
 	await database._dropTables();
 	await database.end();
 
