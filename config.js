@@ -1,6 +1,7 @@
 /**
- * @file Loads in all configurations from .env files and re-exports them in case mocking is needed
- * Completely mock out the config for testing
+ * @file Loads in all configurations from .env files and re-exports them for other files to use
+ * Cannot (or should not) be mocked out in testing since other testing utilities need this not to change.
+ * If reconfiguration is needed for tests, use the `TESTING` constant or `testing.env` and `mock.env` to alter the values as that is set by the Jest test runner
  */
 
 import * as dotenv from "dotenv";
@@ -18,6 +19,7 @@ if(TESTING) {
 	}
 
 	// Import all Jest environment variables and indicators
+	// Slightly redundant but `testing.env` is included by git and mandatory but `mock.env` is not
 	dotenv.config({ path: "mock.env", override: true });
 }
 

@@ -2,13 +2,15 @@
  * @file
  * This file is safe to import anywhere without dynamic require.
  * Use these tools for dynamically creating test users and session in tests.
- * This file ONLY depends on the uuid import and DOES generate random passwords and api_keys.
+ * These must NEVER FAIL and will NOT be unit tested. They should be simple wrappers with internal checks and throw/crash on fail
+ * This file ONLY depends on the `uuid` and `database.js` imports and DOES generate random passwords and api_keys.
  *     IMPORTANT: This randomness should never be an issue unless dashes are one day not allowed in one or the other
+ *                Randomness was a questionable design decision and may be removed in a future commit
  */
 
-// Convenience wrapper functions. These must NEVER FAIL and will NOT be unit tested. They should be simple wrappers with internal checks and throw on fail
 // This function generates user details to use in tests with optional name overriding. Pass the output directly to createUser()
 import { v4 as uuidv4 } from "uuid";
+import database from "./src/database/database.js";
 
 export function generateTestUserObj(firstName = "Test", lastName = "User") {
 	if(typeof firstName !== "string" || typeof lastName !== "string") throw TypeError("Name overrides must be strings");
@@ -49,3 +51,7 @@ export function generateTimes(password, numSessions = 1, ongoing = false) {
 	// In [[<createSession() Params>], [<createSession() Params>]] format
 	return generatedTimes;
 }
+
+// Safe assumption made that database.start() has already been called and the tables exist
+// These directly insert into the database without question
+// TODO: Database insert functionality without relying on database-interface.js
