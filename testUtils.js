@@ -9,8 +9,9 @@
  */
 
 // This function generates user details to use in tests with optional name overriding. Pass the output directly to createUser()
-import { v4 as uuidv4 } from "uuid";
+import {v4 as uuidv4} from "uuid";
 import database from "./src/database/database.js";
+import tableNames from "./src/database/table-names.js";
 
 export function generateTestUserObj(firstName = "Test", lastName = "User") {
 	if(typeof firstName !== "string" || typeof lastName !== "string") throw TypeError("Name overrides must be strings");
@@ -55,3 +56,33 @@ export function generateTimes(password, numSessions = 1, ongoing = false) {
 // Safe assumption made that database.start() has already been called and the tables exist
 // These directly insert into the database without question
 // TODO: Database insert functionality without relying on database-interface.js
+export async function insertTestUser(testUserObj) {
+	// Schema dependent. Modify if schema ever changes
+	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.users} (first_name, last_name, password) VALUES (?, ?, ?)`, [testUserObj.firstName, testUserObj.lastName, testUserObj.password]);
+	// TODO: Check for errors and success
+	console.log(res);
+	return res;
+}
+
+export async function insertTestSession(_testSessionObj) {
+	if(Array.isArray(_testSessionObj) && Array.isArray(_testSessionObj[0])) {
+		// Unpack the array if multiple sessions are to be inserted
+		let sessions = [];
+		for(const testSessionObj in _testSessionObj) {
+			const insertedSession = await insertTestSession(testSessionObj);
+			sessions.push(insertedSession);
+		}
+		return sessions;
+	}
+
+	// Schema dependent. Modify if schema ever changes
+	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.sessions} (password, start_time, end_time) VALUES (?, ?, ?)`, _testSessionObj);
+	// TODO: Check for errors and success
+	console.log(res);
+	return res;
+}
+
+export async function associateSession(password, sessionId) {
+	// TODO: Check for errors and success
+	return await database.singleQueryPromisify(`UPDATE ${tableNames.users} SET session = ? WHERE password = ?`, [sessionId, password]);
+}
