@@ -58,6 +58,7 @@ export function generateTimes(password, numSessions = 1, ongoing = false) {
 // TODO: Database insert functionality without relying on database-interface.js
 export async function insertTestUser(testUserObj) {
 	// Schema dependent. Modify if schema ever changes
+	// TODO: Disallow conflicts
 	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.users} (first_name, last_name, password) VALUES (?, ?, ?)`, [testUserObj.firstName, testUserObj.lastName, testUserObj.password]);
 	// TODO: Check for errors and success
 	console.log(res);
@@ -67,19 +68,17 @@ export async function insertTestUser(testUserObj) {
 export async function insertTestSession(_testSessionObj) {
 	if(Array.isArray(_testSessionObj) && Array.isArray(_testSessionObj[0])) {
 		// Unpack the array if multiple sessions are to be inserted
-		let sessions = [];
-		for(const testSessionObj in _testSessionObj) {
-			const insertedSession = await insertTestSession(testSessionObj);
-			sessions.push(insertedSession);
+		// Run serially rather than in parallel
+		for(const testSessionObj of _testSessionObj) {
+			await insertTestSession(testSessionObj);
 		}
-		return sessions;
+		return;
 	}
 
 	// Schema dependent. Modify if schema ever changes
-	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.sessions} (password, start_time, end_time) VALUES (?, ?, ?)`, _testSessionObj);
-	// TODO: Check for errors and success
-	console.log(res);
-	return res;
+	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.sessions} (password, startTime, endTime) VALUES (?, ?, ?)`, _testSessionObj);
+	// Sanity check
+	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
 }
 
 export async function associateSession(password, sessionId) {
