@@ -28,20 +28,27 @@ function promisifyConnection() {
 	});
 }
 
-async function singleQueryPromisify(query, ...args) {
+// Optional 3rd parameter for endMode which when set, will destroy connections instead of releasing them for reuse
+async function singleQueryPromisify(query, args = [], endMode = false) {
 	const connection = await promisifyConnection();
 
 	return await new Promise((resolve, reject) => {
 		const connectionError = err => {
 			connection.release();
+			if(endMode) {
+				connection.destroy();
+			}
 			reject(err);
 		};
 
 		connection.once("error", connectionError);
 
-		connection.query(query, ...args, (err, res) => {
+		connection.query(query, args, (err, res) => {
 			connection.removeListener("error", connectionError);
 			connection.release();
+			if(endMode) {
+				connection.destroy();
+			}
 			if(err) return reject(err);
 			resolve(res);
 		});
