@@ -13,7 +13,7 @@ export default async function globalTeardown() {
 }
 
 export async function _globalTeardown(nonceDir, nonceFile = "") {
-	console.log("===== Teardown Start =====");
+	// console.log("===== Teardown Start =====");
 
 	// TODO: Take a snapshot of the database
 	// Tears down the test database
@@ -22,23 +22,25 @@ export async function _globalTeardown(nonceDir, nonceFile = "") {
 	await database.end();
 
 	_clearNonce(nonceDir, nonceFile);
-	console.log("===== Teardown Success =====");
+	// console.log("===== Teardown Success =====");
 }
 
 function _clearNonce(nonceDir, nonceFile = "") {
 	if(nonceFile) {
-		console.log(`Removing Nonce File from ${nonceFile}`);
+		// console.log(`Removing Nonce File from ${nonceFile}`);
 		fs.rmSync(nonceFile);
+	} else {
+		console.warn(`No Nonce File to remove`);
 	}
 
-	console.log("Wiping contents of nonce directory so that setup doesn't complain about teardown not being run next time");
+	// console.log("Wiping contents of nonce directory so that setup doesn't complain about teardown not being run next time");
 	const nonceContents = fs.readdirSync(nonceDir);
 	for(const nonceFile of nonceContents) {
 		const noncePath = path.resolve(nonceDir, nonceFile);
 		fs.rmSync(noncePath);
 		console.log(`Wiped: ${noncePath}`);
 	}
-	console.log("Successfully wiped nonce directory");
+	// console.log("Successfully wiped nonce directory");
 }
 
 // Run teardown directly if running directly from command line with `node jest-global-teardown.js`
