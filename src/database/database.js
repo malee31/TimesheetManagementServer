@@ -17,7 +17,9 @@ function promisifyConnection() {
 	return new Promise((resolve, reject) => {
 		pool.getConnection((err, connection) => {
 			if(err) {
-				connection.release();
+				if(connection?.release) {
+					connection.release();
+				}
 				reject(err);
 			}
 
@@ -126,11 +128,11 @@ async function createTables() {
 }
 
 async function dropTables() {
-	const usersTableDrop = singleQueryPromisify(`DROP TABLE ${tableNames.users}`);
-	const apiKeysTableDrop = singleQueryPromisify(`DROP TABLE ${tableNames.api_keys}`);
+	const usersTableDrop = singleQueryPromisify(`DROP TABLE IF EXISTS ${tableNames.users}`);
+	const apiKeysTableDrop = singleQueryPromisify(`DROP TABLE IF EXISTS ${tableNames.api_keys}`);
 	// The users table must be dropped before the sessions table
 	await usersTableDrop;
-	const sessionsTableDrop = singleQueryPromisify(`DROP TABLE ${tableNames.sessions}`);
+	const sessionsTableDrop = singleQueryPromisify(`DROP TABLE IF EXISTS ${tableNames.sessions}`);
 
 	await Promise.all([
 		sessionsTableDrop,

@@ -28,7 +28,6 @@ export default async function globalSetup() {
 
 // Side effects: Sets paths in global (nonceDir and nonceFile) and sets global.setupUsed to true. Runs teardown if needed
 async function _setupNonce() {
-	global.setupUsed = true;
 	global.nonceDir = path.resolve(__dirname, "private/nonce");
 	global.nonceFile = path.resolve(global.nonceDir, `${uuidv4()}.txt`);
 
@@ -47,4 +46,5 @@ async function _setupNonce() {
 		fs.mkdirSync(global.nonceDir, { recursive: true });
 	}
 	fs.writeFileSync(global.nonceFile, "This file existing indicates that Jest tests are either currently running or unexpectedly interrupted at some point.\nIn the case of the latter, you should run global teardown first");
+	global.setupUsed = true;
 }
