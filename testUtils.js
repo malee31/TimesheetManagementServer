@@ -86,3 +86,11 @@ export async function associateSession(password, sessionId) {
 	// TODO: Check for errors and success
 	return await database.singleQueryPromisify(`UPDATE ${tableNames.users} SET session = ? WHERE password = ?`, [sessionId, password]);
 }
+
+export async function insertApiKey(password, apiKey, revoked) {
+	// TODO: Check for errors and success
+	if(revoked !== undefined) {
+		return await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key, revoked) VALUES (?, ?, ?)`, [password, apiKey, revoked]);
+	}
+	return await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key) VALUES (?, ?)`, [password, apiKey]);
+}
