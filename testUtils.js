@@ -58,11 +58,9 @@ export function generateTimes(password, numSessions = 1, ongoing = false) {
 // TODO: Database insert functionality without relying on database-interface.js
 export async function insertTestUser(testUserObj) {
 	// Schema dependent. Modify if schema ever changes
-	// TODO: Disallow conflicts
+	// Note: Conflicts are disallowed on a database level
 	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.users} (first_name, last_name, password) VALUES (?, ?, ?)`, [testUserObj.firstName, testUserObj.lastName, testUserObj.password]);
-	// TODO: Check for errors and success
-	console.log(res);
-	return res;
+	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
 }
 
 export async function insertTestSession(_testSessionObj) {
@@ -87,9 +85,13 @@ export async function associateSession(password, sessionId) {
 }
 
 export async function insertApiKey(password, apiKey, revoked) {
+	if(!apiKey.startsWith("U-")) {
+		throw new TypeError("API Key must start with 'U-'");
+	}
+
 	// TODO: Check for errors and success
 	if(revoked !== undefined) {
-		return await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key, revoked) VALUES (?, ?, ?)`, [password, apiKey, revoked]);
+		return await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key, revoked) VALUES (?, ?, ?)`, [password, apiKey, revoked], true);
 	}
-	return await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key) VALUES (?, ?)`, [password, apiKey]);
+	return await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key) VALUES (?, ?)`, [password, apiKey], true);
 }
