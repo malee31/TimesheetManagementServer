@@ -1,5 +1,11 @@
 import database from "../database/database.js";
 import tableNames from "../database/table-names.js";
+import { associateSession } from "../../testUtils.js";
+
+// Note: This file has a few lines of repeated code to the source of testUtils.js but that is intentional
+//       This was, even if the utils source code changes, the tests will not couple and depend on each other
+
+const SESSION_OFFSET = 30 * 60 * 60 * 1000;  // +30 minutes
 
 describe("User Test Utility Inserts As Intended", () => {
 	let insertUserUtil;
@@ -105,7 +111,6 @@ describe("API Key Test Utility Inserts As Intended", () => {
 });
 
 describe("Session Test Utility Inserts As Intended", () => {
-	const sessionOffset = 30 * 60 * 60 * 1000;  // +30 minutes
 	let insertSessionUtil;
 	beforeAll(() => {
 		insertSessionUtil = global._utils.insertTestSession;
@@ -114,7 +119,7 @@ describe("Session Test Utility Inserts As Intended", () => {
 	it("Inserts new session", async () => {
 		const password = "testUtils-session-password-entry-1";
 		const startTime = new Date("January 1, 2000 12:00:00").getTime();
-		const endTime = startTime + sessionOffset;
+		const endTime = startTime + SESSION_OFFSET;
 
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
@@ -128,14 +133,14 @@ describe("Session Test Utility Inserts As Intended", () => {
 	it("Inserts multiple new sessions", async () => {
 		const password = "testUtils-session-password-entry-2";
 		const startTime = new Date("January 2, 2000 12:00:00").getTime();
-		const endTime = startTime + sessionOffset;  // +30 minutes
+		const endTime = startTime + SESSION_OFFSET;  // +30 minutes
 		const numSessions = 10;
 
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
 		await insertSessionUtil(Array(numSessions).fill(0).map((_, index) => (
-			[password, startTime + index * sessionOffset, endTime + index * sessionOffset]
+			[password, startTime + index * SESSION_OFFSET, endTime + index * SESSION_OFFSET]
 		)));
 
 		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);
@@ -144,11 +149,45 @@ describe("Session Test Utility Inserts As Intended", () => {
 });
 
 describe("Session Association Test Utility Updates As Intended", () => {
-	it("Associates new session", async () => {
+	let associateSessionUtil;
+	beforeAll(() => {
+		associateSessionUtil = global._utils.associateSession;
+	});
 
+	it("Associates new session", async () => {
+		const password = "testUtils-session-associate-password-entry-1";
+		// Create a user
+		const userRes = await database.singleQueryPromisify(`INSERT INTO ${tableNames.users} (first_name, last_name, password) VALUES (?, ?, ?)`, ["Test Util Session Association", "User", password], true);
+		expect(userRes.affectedRows).toBe(1);
+
+		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);
+		expect(existenceCheckBefore.length).toBe(0);
+
+		const startTime = new Date("January 2, 2000 12:00:00").getTime();
+		const endTime = startTime + SESSION_OFFSET;  // +30 minutes
+		const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.sessions} (password, startTime, endTime) VALUES (?, ?, ?)`, [password, startTime, endTime], true);
+		expect(res.affectedRows).toBe(1);
+
+		const sessionIdRes = await database.singleQueryPromisify(`SELECT session_id FROM ${tableNames.sessions} WHERE password=? AND startTime=? AND endTime=?`, [password, startTime, endTime], true);
+		const associateSessionId = sessionIdRes[0].session_id;
+		expect(associateSessionId).toEqual(expect.any(Number));
+
+		await associateSession(password, associateSessionId);
+
+		const associateCheckRes = await database.singleQueryPromisify(`SELECT session FROM ${tableNames.users} WHERE password = ?`, [password], true);
+		expect(associateCheckRes[0].session).toEqual(associateSessionId);
 	});
 
 	it("Refuses to associate non-existent session", async () => {
+		const password = "testUtils-session-associate-password-entry-2";
 
+		const lastSessionId = await database.singleQueryPromisify(`SELECT session_id FROM ${tableNames.sessions} ORDER BY session_id DESC LIMIT 1`, [], true);
+		const nonexistentSessionId = lastSessionId + 1;
+
+		const sessionNonexistenceCheck = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE session_id = ?`, [nonexistentSessionId], true);
+		expect(sessionNonexistenceCheck.length).toBe(0);
+
+		const associateNonexistentPromise = associateSession(password, nonexistentSessionId);
+		expect(associateNonexistentPromise).toReject();
 	});
 });

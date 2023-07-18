@@ -81,7 +81,8 @@ export async function insertTestSession(_testSessionObj) {
 
 export async function associateSession(password, sessionId) {
 	// TODO: Check for errors and success
-	return await database.singleQueryPromisify(`UPDATE ${tableNames.users} SET session = ? WHERE password = ?`, [sessionId, password]);
+	const res = await database.singleQueryPromisify(`UPDATE ${tableNames.users} SET session = ? WHERE password = ?`, [sessionId, password]);
+	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
 }
 
 export async function insertApiKey(password, apiKey, revoked) {
