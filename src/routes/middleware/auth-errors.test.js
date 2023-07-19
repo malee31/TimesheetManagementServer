@@ -132,14 +132,24 @@ describe("User Auth Middleware", () => {
 	});
 
 	it("Handles Revoked User Keys", async () => {
-		// TODO: Fix since there's no way to inject a revoked key into the database right now
 		// Note: Depends on order and position in array. Update test if changed
 		const { user: userMiddleware } = authMiddleware;
 		const userAuthMiddleware = userMiddleware[1];
 
+		const authUser = global._utils.generateTestUserObj("Valid User Auth");
+		const password = authUser.password;
+		await global._utils.insertTestUser(authUser);
+		// TODO: Question whether this should really be done. Maybe add another util to generate the select statements to run directly
+		const apiKeyRevoked = "U-User-Auth-Revoked";
+		const apiKeyValid = "U-User-Auth-Valid";
+		await global._utils.insertApiKey(password, apiKeyRevoked, true);
+
+		// Line technically not required for this test
+		await global._utils.insertApiKey(password, apiKeyValid);
+
 		const req = {};
 		req.locals = {
-			apiKey: "U-User-C-Old-Key"
+			apiKey: apiKeyRevoked
 		};
 
 		const res = {};
@@ -156,7 +166,7 @@ describe("User Auth Middleware", () => {
 				error: "auth_revoked_by_user"
 			})
 		);
-		expect(req.locals.apiKey).toBe("U-User-C-Old-Key");
+		expect(req.locals.apiKey).toBe(apiKeyRevoked);
 	});
 
 	it("Handles Invalid User Keys", async () => {
