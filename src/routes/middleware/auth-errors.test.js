@@ -1,5 +1,3 @@
-const mockedDBI = require("../../database/database-interface.js");
-const database = require("../../database/database-interface.js");
 let authMiddleware;
 
 beforeEach(async () => {

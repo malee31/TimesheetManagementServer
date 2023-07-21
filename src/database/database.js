@@ -1,3 +1,11 @@
+/**
+ * @file Database Wrapper
+ * A (relatively) low-level wrapper around the database to create Promises out of database queries.
+ * Other libraries like `mysql2` contain these features but `mysql` is being used for legacy reasons at the moment.
+ * Note: This file does not have a dedicated test script. It is mostly assumed to either work or completely crash.
+ *       It is indirectly unit tested lightly by other tests that use these functions to set themselves up
+ */
+
 // Configure SQL credentials from environment variables
 import mysql from "mysql";
 import tableNames from "./table-names.js";
@@ -5,6 +13,7 @@ import schemas from "./table-schemas.js";
 import { MYSQL_DATABASE, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_USER, TESTING } from "../../config.js";
 
 // Note: Before use, guarantee that the connection is active and the tables have been set up with start()
+//       Beware that calling start() is *NOT* mandatory and not guaranteed to be called before all other functions
 let pool = mysql.createPool({
 	host: MYSQL_HOST,
 	user: MYSQL_USER,
@@ -175,7 +184,7 @@ async function start(skipTableCreation = false) {
 }
 
 async function end() {
-	// TODO: Add any other cleanup tasks
+	// Note: Any other cleanup tasks may go here
 	await new Promise((resolve, reject) => pool.end(err => {
 		if(err) {
 			return reject(err);
