@@ -1,6 +1,6 @@
 import database from "../database/database.js";
 import tableNames from "../database/table-names.js";
-import { associateSession } from "../../testUtils.js";
+import { associateSession } from "../utils/testUtils.js";
 
 // Note: This file has a few lines of repeated code to the source of testUtils.js but that is intentional
 //       This was, even if the utils source code changes, the tests will not couple and depend on each other
@@ -107,7 +107,7 @@ describe("API Key Test Utility Inserts As Intended", () => {
 
 		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.api_keys} WHERE password = ?`, [password], true);
 		expect(existenceCheckAfter.length).toBe(NUM_KEYS);
-	}, 10000);
+	});
 });
 
 describe("Session Test Utility Inserts As Intended", () => {

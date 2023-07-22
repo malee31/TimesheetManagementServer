@@ -1,5 +1,5 @@
 import * as matchers from "jest-extended";
-import * as testUtils from "./testUtils.js";
+import * as testUtils from "./src/utils/testUtils.js";
 
 global._utils = testUtils;
 

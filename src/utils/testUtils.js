@@ -10,8 +10,8 @@
 
 // This function generates user details to use in tests with optional name overriding. Pass the output directly to createUser()
 import {v4 as uuidv4} from "uuid";
-import database from "./src/database/database.js";
-import tableNames from "./src/database/table-names.js";
+import database from "../database/database.js";
+import tableNames from "../database/table-names.js";
 
 export function generateTestUserObj(firstName = "Test", lastName = "User") {
 	if(typeof firstName !== "string" || typeof lastName !== "string") throw TypeError("Name overrides must be strings");
@@ -27,8 +27,8 @@ export function generateTestUserObj(firstName = "Test", lastName = "User") {
 
 // You may change this any time. The test logs may change but the results shouldn't
 // This is just to hard-code a start time for test users' generated times
-const GENERATED_START_DATE_MILLIS = (new Date("2023-01-01T00:00:00")).getTime();
-const HOUR_IN_MILLISECONDS = 60 * 60 * 1000;
+export const GENERATED_START_DATE_MILLIS = (new Date("2023-01-01T00:00:00")).getTime();
+export const HOUR_IN_MILLISECONDS = 60 * 60 * 1000;
 // Generates the inputs to feed into createSession(). This util should be updated if createSession() changes its signature
 // Create a number of sessions with await Promise.all(generateTimes(...).map(createSession)
 export function generateTimes(password, numSessions = 1, ongoing = false) {
