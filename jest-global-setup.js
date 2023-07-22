@@ -31,6 +31,10 @@ async function _setupNonce() {
 	global.nonceDir = path.resolve(__dirname, "private/nonce");
 	global.nonceFile = path.resolve(global.nonceDir, `${uuidv4()}.txt`);
 
+	if(!fs.existsSync(global.nonceDir)) {
+		fs.mkdirSync(global.nonceDir, { recursive: true });
+	}
+
 	const nonceDir = global.nonceDir;
 	const fileList = fs.readdirSync(nonceDir);
 	if(fileList.length) {
@@ -42,9 +46,6 @@ async function _setupNonce() {
 
 	// console.log(`\nFile inserted in ${global.nonceFile} to ensure that global setup only runs once`);
 
-	if(!fs.existsSync(global.nonceDir)) {
-		fs.mkdirSync(global.nonceDir, { recursive: true });
-	}
 	fs.writeFileSync(global.nonceFile, "This file existing indicates that Jest tests are either currently running or unexpectedly interrupted at some point.\nIn the case of the latter, you should run global teardown first");
 	global.setupUsed = true;
 }

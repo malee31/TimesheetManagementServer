@@ -13,7 +13,7 @@ if(TESTING) {
 
 	// Ensures that at least one MYSQL env variable is overridden by testing.env
 	const mysqlCredentialsChanged = Object.keys(testingEnv).some(testKey => testKey.startsWith("MYSQL_") && originalEnv[testKey] !== testingEnv[testKey]);
-	if(!mysqlCredentialsChanged && testingEnv.ALLOW_TESTING_ON_PROD !== "true") {
+	if(!mysqlCredentialsChanged && process.env.ALLOW_TESTING_ON_PROD !== "true") {
 		console.error("Refusing to run tests on the production database. At least one MYSQL configuration variable must differ in testing.env. \n(Set ALLOW_TESTING_ON_PROD to 'true' to override)");
 		process.exit(1);
 	}
