@@ -1,24 +1,24 @@
 const request = require("supertest");
+const { generateTestUserObj, insertTestUser, insertApiKey } = require("../../../utils/testUtils.js");
+
+let app;
+beforeEach(async () => {
+	jest.mock("../../../database/database-interface.js");
+	const mockedDBI = require("../../../database/database-interface.js");
+	// TODO: Check beforeAll
+	await mockedDBI.setupTestingDatabase();
+
+	const appExports = require("../../../app.js");
+	appExports.activateApiRouter();
+	app = appExports.default;
+});
 
 describe("POST /exchange", () => {
-	beforeEach(async () => {
-		jest.mock("../../../database/database-interface.js");
-		const mockedDBI = require("../../../database/database-interface.js");
-		mockedDBI.setSampleData();
-
-		// TODO: Check beforeAll
-		await mockedDBI.setupTestingDatabase();
-	});
-
+	// TODO: Check if checking if user exists is required (It should already be handled by middleware iirc)
 	it("Exchanges API Keys", async () => {
-		const appExports = require("../../../app.js");
-		appExports.activateApiRouter();
-		const app = appExports.default;
-
-		const database = require("../../../database/database-interface.js");
-		const exchangeTestUser = await database.createUser(global._utils.generateTestUserObj("Exchange API Key"));
+		const exchangeTestUser = await insertTestUser(generateTestUserObj("Exchange API Key"));
 		// TODO: Question whether this should really be done. Maybe add another util to generate the select statements to run directly
-		const exchangeApiKey = await database.apiKeyExchange(exchangeTestUser.password);
+		const exchangeApiKeyRow = await insertApiKey(exchangeTestUser.password, "U-Exchange-API-Key");
 
 		const res = await request(app)
 			.post("/user/auth/exchange")
@@ -30,28 +30,21 @@ describe("POST /exchange", () => {
 		expect(res.statusCode).toBe(200);
 		expect(res.body).toMatchObject({
 			ok: true,
-			api_key: exchangeApiKey
+			api_key: exchangeApiKeyRow.api_key
 		});
 	});
 });
 
 describe("POST /revoke", () => {
-	beforeEach(() => {
-		jest.mock("../../../database/database-interface.js");
-		const mockedDBI = require("../../../database/database-interface.js");
-		mockedDBI.setSampleData();
-	});
-
 	it("Revokes API Keys", async () => {
-		const appExports = require("../../../app.js");
-		appExports.activateApiRouter();
-		const app = appExports.default;
+		const testUser = await insertTestUser(generateTestUserObj("Revoke API Key"));
+		const oldValidApiKeyRow = await insertApiKey(testUser.password, "U-Revoked-This-Api-Key-1");
 
 		const res = await request(app)
 			.post("/user/auth/revoke")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-C-Key")
+			.set("Authorization", `Bearer ${oldValidApiKeyRow.api_key}`)
 			.send();
 
 		expect(res.headers["content-type"]).toMatch(/json/);
@@ -60,18 +53,18 @@ describe("POST /revoke", () => {
 			ok: true,
 			api_key: expect.stringMatching(/^U-.*$/)
 		});
+		expect(res.body.api_key).not.toBe(oldValidApiKeyRow.api_key);
 	});
 
 	it("Detects Revoked API Keys", async () => {
-		const appExports = require("../../../app.js");
-		appExports.activateApiRouter();
-		const app = appExports.default;
+		const testUser = await insertTestUser(generateTestUserObj("Already Revoked API Key"));
+		const revokedApiKeyRow = await insertApiKey(testUser.password, "U-Revoked-Api-Key-1", true);
 
 		const res = await request(app)
 			.post("/user/auth/revoke")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-C-Old-Key")
+			.set("Authorization", `Bearer ${revokedApiKeyRow.api_key}`)
 			.send();
 
 		expect(res.headers["content-type"]).toMatch(/json/);
