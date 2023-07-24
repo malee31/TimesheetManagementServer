@@ -1,25 +1,20 @@
 import database from "../database/database.js";
 import tableNames from "../database/table-names.js";
-import { associateSession } from "../utils/testUtils.js";
+import { associateSession, insertApiKey, insertTestSession, insertTestUser } from "../utils/testUtils.js";
 
-// Note: This file has a few lines of repeated code to the source of testUtils.js but that is intentional
-//       This was, even if the utils source code changes, the tests will not couple and depend on each other
+// Note: This file has a few lines of code repeated from the source of testUtils.js but that is intentional
+//       That way, even if the testUtils source code changes, the tests will not couple and depend on each other
 
 const SESSION_OFFSET = 30 * 60 * 60 * 1000;  // +30 minutes
 
 describe("User Test Utility Inserts As Intended", () => {
-	let insertUserUtil;
-	beforeAll(() => {
-		insertUserUtil = global._utils.insertTestUser;
-	});
-
 	it("Inserts non-pre-existing user", async () => {
 		const password = "testUtils-user-password-entry-1";
 
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.users} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
-		await insertUserUtil({
+		await insertTestUser({
 			firstName: "Test Util New User",
 			lastName: "Test",
 			password: password
@@ -35,13 +30,13 @@ describe("User Test Utility Inserts As Intended", () => {
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.users} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
-		await insertUserUtil({
+		await insertTestUser({
 			firstName: "Test Util New User Conflict",
 			lastName: "Test",
 			password: password
 		});
 
-		const duplicateInsertErr = await insertUserUtil({
+		const duplicateInsertErr = await insertTestUser({
 			firstName: "Test Util New User",
 			lastName: "Test",
 			password: password
@@ -55,14 +50,9 @@ describe("User Test Utility Inserts As Intended", () => {
 });
 
 describe("API Key Test Utility Inserts As Intended", () => {
-	let insertApiKeyUtil;
-	beforeAll(() => {
-		insertApiKeyUtil = global._utils.insertApiKey;
-	});
-
 	it("Rejects invalid API keys", async () => {
-		expect(insertApiKeyUtil("irrelevant-password", "invalid-api-key")).toReject(TypeError)
-	})
+		expect(insertApiKey("irrelevant-password", "invalid-api-key")).toReject(TypeError)
+	});
 
 	it("Inserts new API key", async () => {
 		const password = "testUtils-api-key-password-entry-1";
@@ -71,7 +61,10 @@ describe("API Key Test Utility Inserts As Intended", () => {
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.api_keys} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
-		await insertApiKeyUtil(password, apiKey);
+		const insertedApiKey = await insertApiKey(password, apiKey);
+		expect(insertedApiKey.id).toBeGreaterThan(0);
+		expect(insertedApiKey.api_key).toBeString();
+		expect(insertedApiKey.revoked).toBeFalsy();
 
 		// Also checks revoked false
 		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.api_keys} WHERE password = ? AND revoked = FALSE`, [password], true);
@@ -85,7 +78,10 @@ describe("API Key Test Utility Inserts As Intended", () => {
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.api_keys} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
-		await insertApiKeyUtil(password, apiKey, true);
+		const insertedApiKey = await insertApiKey(password, apiKey, true);
+		expect(insertedApiKey.id).toBeGreaterThan(0);
+		expect(insertedApiKey.api_key).toBeString();
+		expect(insertedApiKey.revoked).toBeTruthy();
 
 		// Also checks revoked true
 		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.api_keys} WHERE password = ? AND revoked = TRUE`, [password], true);
@@ -103,7 +99,10 @@ describe("API Key Test Utility Inserts As Intended", () => {
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.api_keys} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
-		await Promise.all(apiKeys.map(key => insertApiKeyUtil(password, key)));
+		const insertedApiKeys = await Promise.all(apiKeys.map(key => insertApiKey(password, key)));
+		expect(insertedApiKeys.length).toBe(NUM_KEYS);
+		expect(insertedApiKeys[0].id).toBeGreaterThan(0);
+		expect(insertedApiKeys[0].api_key).toBeString();
 
 		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.api_keys} WHERE password = ?`, [password], true);
 		expect(existenceCheckAfter.length).toBe(NUM_KEYS);
@@ -111,11 +110,6 @@ describe("API Key Test Utility Inserts As Intended", () => {
 });
 
 describe("Session Test Utility Inserts As Intended", () => {
-	let insertSessionUtil;
-	beforeAll(() => {
-		insertSessionUtil = global._utils.insertTestSession;
-	});
-
 	it("Inserts new session", async () => {
 		const password = "testUtils-session-password-entry-1";
 		const startTime = new Date("January 1, 2000 12:00:00").getTime();
@@ -124,7 +118,8 @@ describe("Session Test Utility Inserts As Intended", () => {
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
-		await insertSessionUtil([password, startTime, endTime]);
+		const insertedSession = await insertTestSession([password, startTime, endTime]);
+		expect(insertedSession.session_id).toBeGreaterThan(0);
 
 		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);
 		expect(existenceCheckAfter.length).toBe(1);
@@ -139,9 +134,11 @@ describe("Session Test Utility Inserts As Intended", () => {
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
-		await insertSessionUtil(Array(numSessions).fill(0).map((_, index) => (
+		const insertedSessions = await insertTestSession(Array(numSessions).fill(0).map((_, index) => (
 			[password, startTime + index * SESSION_OFFSET, endTime + index * SESSION_OFFSET]
 		)));
+		expect(insertedSessions.length).toBe(numSessions);
+		expect(insertedSessions[0].session_id).toBeGreaterThan(0);
 
 		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);
 		expect(existenceCheckAfter.length).toBe(numSessions);
@@ -149,11 +146,6 @@ describe("Session Test Utility Inserts As Intended", () => {
 });
 
 describe("Session Association Test Utility Updates As Intended", () => {
-	let associateSessionUtil;
-	beforeAll(() => {
-		associateSessionUtil = global._utils.associateSession;
-	});
-
 	it("Associates new session", async () => {
 		const password = "testUtils-session-associate-password-entry-1";
 		// Create a user
@@ -172,7 +164,9 @@ describe("Session Association Test Utility Updates As Intended", () => {
 		const associateSessionId = sessionIdRes[0].session_id;
 		expect(associateSessionId).toEqual(expect.any(Number));
 
-		await associateSession(password, associateSessionId);
+		const associatedUser = await associateSession(password, associateSessionId);
+		expect(associatedUser.id).toBeGreaterThan(0);
+		expect(associatedUser.password).toBe(password);
 
 		const associateCheckRes = await database.singleQueryPromisify(`SELECT session FROM ${tableNames.users} WHERE password = ?`, [password], true);
 		expect(associateCheckRes[0].session).toEqual(associateSessionId);

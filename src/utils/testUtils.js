@@ -1,7 +1,8 @@
 /**
  * @file
- * This file is safe to import anywhere without dynamic require.
- * Use these tools for dynamically creating test users and session in tests.
+ * This file is stateless and safe to import anywhere without a dynamic require.
+ * It does utilize the `mysql` specific feature of an `insertId` being provided on insert to look up the last inserted row. See the SQL `OUTPUT` keyword for other languages
+ * Use these tools for dynamically creating test users and session in tests (Although they could be used for quick scripts).
  * These must NEVER FAIL and will NOT be unit tested. They should be simple wrappers with internal checks and throw/crash on fail
  * This file ONLY depends on the `uuid` and `database.js` imports and DOES generate random passwords and api_keys.
  *     IMPORTANT: This randomness should never be an issue unless dashes are one day not allowed in one or the other
@@ -61,28 +62,35 @@ export async function insertTestUser(testUserObj) {
 	// Note: Conflicts are disallowed on a database level
 	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.users} (first_name, last_name, password) VALUES (?, ?, ?)`, [testUserObj.firstName, testUserObj.lastName, testUserObj.password]);
 	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
+
+	return (await database.singleQueryPromisify(`SELECT * FROM ${tableNames.users} WHERE id = ?`, [res.insertId]))[0];  // Returns entry given the ID
 }
 
 export async function insertTestSession(_testSessionObj) {
 	if(Array.isArray(_testSessionObj) && Array.isArray(_testSessionObj[0])) {
 		// Unpack the array if multiple sessions are to be inserted
 		// Run serially rather than in parallel
+		const insertedSessions = [];
 		for(const testSessionObj of _testSessionObj) {
-			await insertTestSession(testSessionObj);
+			insertedSessions.push(await insertTestSession(testSessionObj));
 		}
-		return;
+		return insertedSessions;
 	}
 
 	// Schema dependent. Modify if schema ever changes
 	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.sessions} (password, startTime, endTime) VALUES (?, ?, ?)`, _testSessionObj);
 	// Sanity check
 	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
+
+	return (await database.singleQueryPromisify(`SELECT * FROM ${tableNames.sessions} WHERE session_id = ?`, [res.insertId]))[0];  // Returns entry given the ID
 }
 
 export async function associateSession(password, sessionId) {
 	// TODO: Check for errors and success
 	const res = await database.singleQueryPromisify(`UPDATE ${tableNames.users} SET session = ? WHERE password = ?`, [sessionId, password]);
 	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
+
+	return (await database.singleQueryPromisify(`SELECT * FROM ${tableNames.users} WHERE password = ?`, [password]))[0];  // Returns modified user entry
 }
 
 export async function insertApiKey(password, apiKey, revoked) {
@@ -91,8 +99,14 @@ export async function insertApiKey(password, apiKey, revoked) {
 	}
 
 	// TODO: Check for errors and success
+	let res;
 	if(revoked !== undefined) {
-		return await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key, revoked) VALUES (?, ?, ?)`, [password, apiKey, revoked], true);
+		res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key, revoked) VALUES (?, ?, ?)`, [password, apiKey, revoked], true);
+	} else {
+		res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key) VALUES (?, ?)`, [password, apiKey], true);
 	}
-	return await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key) VALUES (?, ?)`, [password, apiKey], true);
+	// Sanity check
+	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
+
+	return (await database.singleQueryPromisify(`SELECT * FROM ${tableNames.api_keys} WHERE id = ?`, [res.insertId]))[0];  // Returns modified user entry
 }
