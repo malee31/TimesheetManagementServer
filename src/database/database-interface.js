@@ -51,6 +51,21 @@ export async function getAllUsersWithStatus() {
 	if(users.length === 0) {
 		console.warn("No users in the database");
 	}
+
+	// Modify SQL output (self) to fit output schema
+	for(const userStatus of users) {
+		if(userStatus.session_id !== null) {
+			userStatus.session = {
+				session_id: userStatus.session_id,
+				startTime: userStatus.startTime,
+				endTime: userStatus.endTime
+			};
+		}
+
+		delete userStatus.session_id;
+		delete userStatus.startTime;
+		delete userStatus.endTime;
+	}
 	return users;
 }
 

@@ -1,16 +1,36 @@
 const request = require("supertest");
+const { insertTestUser, generateTestUserObj, generateTimes, insertTestSession, associateSession } = require("../../utils/testUtils.js");
 
 let mockedDBI;
 let app;
 
-beforeEach(() => {
+beforeAll(async () => {
 	jest.mock("../../database/database-interface.js");
 	mockedDBI = require("../../database/database-interface.js");
-	mockedDBI.setSampleData();
+	mockedDBI.setupTestingDatabase();
 
 	const appExports = require("../../app.js");
 	appExports.activateApiRouter();
 	app = appExports.default;
+
+	// These tests require a minimum number of users in the database
+	// Decreasing these constants may fail some tests
+	const MIN_NUM_USERS = 10;
+	const MIN_NUM_SESSIONS = 10;
+	const generatedUsers = await Promise.all(Array(MIN_NUM_USERS).fill(0).map((_, index) => {
+		return insertTestUser(generateTestUserObj("Users Endpoint Minimum User", `Number ${index}`));
+	}));
+
+	// Attaches first half of the sessions to the first user and the second half to the second. The others have no sessions
+	// Order irrelevant
+	const numSessionsFirstHalf = Math.floor(MIN_NUM_SESSIONS / 2);
+	const firstHalfSessions = await insertTestSession(generateTimes(generatedUsers[0].password, numSessionsFirstHalf));
+	const secondHalfSessions = await insertTestSession(generateTimes(generatedUsers[1].password, MIN_NUM_SESSIONS - numSessionsFirstHalf));
+	// Associate sessions
+	await Promise.all([
+		associateSession(generatedUsers[0].password, firstHalfSessions[firstHalfSessions.length - 1].session_id),
+		associateSession(generatedUsers[1].password, secondHalfSessions[secondHalfSessions.length - 1].session_id)
+	]);
 });
 
 describe("GET /", () => {
@@ -46,11 +66,14 @@ describe("GET /status", () => {
 					id: expect.any(Number),
 					first_name: expect.any(String),
 					last_name: expect.any(String),
-					session: expect.objectContaining({
-						session_id: expect.any(Number),
-						startTime: expect.any(Number),
-						endTime: expect.toBeOneOf([null, expect.any(Number)])
-					})
+					session: expect.toBeOneOf([
+						expect.objectContaining({
+							session_id: expect.any(Number),
+							startTime: expect.any(Number),
+							endTime: expect.toBeOneOf([null, expect.any(Number)])
+						}),
+						null
+					])
 				})
 			])
 		});
@@ -114,6 +137,7 @@ describe("GET /sessions", () => {
 		});
 	});
 
+	// TODO: Check page 2 etc to ensure no overlap
 	it("Fetches All Sessions With Pagination", async () => {
 		const res = await request(app)
 			.get("/users/sessions?page=1&count=3")
