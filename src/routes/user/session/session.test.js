@@ -1,12 +1,13 @@
 const request = require("supertest");
+const { insertTestUser, generateTestUserObj, insertApiKey, insertTestSession, generateTimes, associateSession } = require("../../../utils/testUtils.js");
 
 let mockedDBI;
 let app;
 
-beforeEach(() => {
+beforeAll(() => {
 	jest.mock("../../../database/database-interface.js");
 	mockedDBI = require("../../../database/database-interface.js");
-	mockedDBI.setSampleData();
+	mockedDBI.setupTestingDatabase();
 
 	const appExports = require("../../../app.js");
 	appExports.activateApiRouter();
@@ -59,9 +60,14 @@ describe("DELETE /:sessionid", () => {
 		});
 	});
 
+	// TODO: Add or protect against deleting ongoing or current session
 	it("Deletes Session With Given Session Id", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Session Standard Initial Login"));
+		await insertApiKey(testUser.password, "U-session-delete-session-by-id");
+		const testSession = (await insertTestSession(generateTimes(testUser.password, 1, false)))[0];
+
 		const res = await request(app)
-			.delete("/user/session/1")
+			.delete(`/user/session/${testSession.session_id}`)
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
 			.set("Authorization", "Bearer A-Admin-Key")
@@ -70,18 +76,21 @@ describe("DELETE /:sessionid", () => {
 		expect(res.statusCode).toBe(200);
 		expect(res.body).toMatchObject({
 			ok: true,
-			old_session_id: 1
+			old_session_id: testSession.session_id
 		});
 	});
 });
 
 describe("GET /latest", () => {
 	it("Handles No Previous Sessions", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Session Standard Initial Login"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-session-no-previous-session");
+
 		const res = await request(app)
 			.get("/user/session/latest")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-D-Key");
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`);
 
 		expect(res.statusCode).toBe(404);
 		expect(res.body).toMatchObject({
@@ -91,19 +100,25 @@ describe("GET /latest", () => {
 	});
 
 	it("Handles Getting Latest Session", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Session Standard Initial Login"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-session-get-latest-session");
+		const testSessions = await insertTestSession(generateTimes(testUser.password, 10));
+		const latestTestSession = testSessions[testSessions.length - 1];
+		await associateSession(testUser.password, latestTestSession.session_id);
+
 		const res = await request(app)
 			.get("/user/session/latest")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-A-Key");
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`);
 
 		expect(res.statusCode).toBe(200);
 		expect(res.body).toMatchObject({
 			ok: true,
 			session: {
-				session_id: 1,
-				startTime: 1681887600000,
-				endTime: 1681887600000 + 30 * 60 * 1000
+				session_id: latestTestSession.session_id,
+				startTime: latestTestSession.startTime,
+				endTime: latestTestSession.endTime
 			}
 		});
 	});
@@ -111,11 +126,14 @@ describe("GET /latest", () => {
 
 describe("PATCH /latest", () => {
 	it("Handles Login Without Previous Sessions", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Session Standard Initial Login"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-session-first-login");
+
 		const res = await request(app)
 			.patch("/user/session/latest")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-D-Key")
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`)
 			.send({
 				method: "sign_in"
 			});
@@ -132,11 +150,14 @@ describe("PATCH /latest", () => {
 	});
 
 	it("Handles Invalid Method", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Session Standard Initial Login"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-session-invalid-method");
+
 		const res = await request(app)
 			.patch("/user/session/latest")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-C-Key")
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`)
 			.send({
 				method: "sign_in_and_out"
 			});
@@ -149,11 +170,15 @@ describe("PATCH /latest", () => {
 	});
 
 	it("Handles Standard Login", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Session Standard Login"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-session-standard-login");
+		await insertTestSession(generateTimes(testUser.password));
+
 		const res = await request(app)
 			.patch("/user/session/latest")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-A-Key")
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`)
 			.send({
 				method: "sign_in"
 			});
@@ -170,11 +195,16 @@ describe("PATCH /latest", () => {
 	});
 
 	it("Handles Standard Logout", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Session Standard Login"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-session-standard-logout");
+		const testSession = (await insertTestSession(generateTimes(testUser.password, 1, true)))[0];
+		await associateSession(testUser.password, testSession.session_id);
+
 		const res = await request(app)
 			.patch("/user/session/latest")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-C-Key")
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`)
 			.send({
 				method: "sign_out"
 			});
@@ -183,8 +213,8 @@ describe("PATCH /latest", () => {
 		expect(res.body).toMatchObject({
 			ok: true,
 			session: {
-				session_id: 4,
-				startTime: 1681894800000,
+				session_id: testSession.session_id,
+				startTime: testSession.startTime,
 				endTime: expect.any(Number)
 			}
 		});
@@ -194,11 +224,16 @@ describe("PATCH /latest", () => {
 	// TODO: Consider sending session
 	// TODO: Consider null sessions
 	it("Handles Already Logged In/Out", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Session Standard Login"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-session-already-logged-out");
+		const testSession = (await insertTestSession(generateTimes(testUser.password, 1, true)))[0];
+		await associateSession(testUser.password, testSession.session_id);
+
 		const res = await request(app)
 			.patch("/user/session/latest")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-C-Key")
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`)
 			.send({
 				method: "sign_in"
 			});

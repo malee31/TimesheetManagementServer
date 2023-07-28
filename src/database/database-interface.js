@@ -210,7 +210,6 @@ export async function deleteSession(sessionId) {
 
 export async function getSessions(count, offset) {
 	const sessionsRes = await database.singleQueryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 ORDER BY session_id LIMIT ? OFFSET ?", [count, offset]);
-	console.log(sessionsRes);
 	if(sessionsRes.length === 0) {
 		return null;
 	}
