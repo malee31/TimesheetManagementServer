@@ -1,6 +1,7 @@
 import database from "./database.js";
 import { makeNewApiKey } from "../utils/apiKey.js";
 import { TESTING } from "../../config";
+import tableNames from "./table-names.js";
 
 // This file acts as an abstraction layer between the database and the code for easy compatibility with any database
 // This file should contain methods to interact and manipulate database information
@@ -109,8 +110,8 @@ export async function changePassword(oldPassword, newPassword) {
 		console.log(`Update ${oldPassword} to ${newPassword}`);
 	}
 
-	const apiKeyRows = await database.singleQueryPromisify("SELECT * FROM api_keys_v2 WHERE password = ?", [newPassword]);
-	if(apiKeyRows.length !== 0) {
+	const userConflictRows = await database.singleQueryPromisify(`SELECT * FROM ${tableNames.users} WHERE password = ?`, [newPassword]);
+	if(userConflictRows.length !== 0) {
 		// Note: Leaks semi-sensitive information into logs
 		if(!TESTING) {
 			console.log(`Reject password change resulting in a collision for ${newPassword}`);

@@ -230,7 +230,7 @@ describe("PATCH /password", () => {
 		expect(apiKeyCheckAll.every(checkApiKeyRows => checkApiKeyRows[0].password === newPassword)).toBeTrue();
 	});
 
-	it("Handles Password Conflicts", async () => {
+	it("Handles Password Change Conflicts", async () => {
 		const testUserAChange = await insertTestUser(generateTestUserObj("User Password Change To Conflict"));
 		const testUserBConflict = await insertTestUser(generateTestUserObj("User Password Change To Conflicted"));
 		const testApiKeyRowUserA = await insertApiKey(testUserAChange.password, "U-User-Non-Conflicting-Password");
