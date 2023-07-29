@@ -124,8 +124,9 @@ export async function changePassword(oldPassword, newPassword) {
 	}
 
 	const transaction = await database.transactionPromisify();
-	await database.transactionQuery(transaction, "UPDATE users_v2 SET password = ? WHERE password = ?", [newPassword, oldPassword]);
-	await database.transactionQuery(transaction, "UPDATE api_keys_v2 SET password = ? WHERE password = ?", [newPassword, oldPassword]);
+	await database.transactionQuery(transaction, `UPDATE ${tableNames.users} SET password = ? WHERE password = ?`, [newPassword, oldPassword]);
+	await database.transactionQuery(transaction, `UPDATE ${tableNames.api_keys} SET password = ? WHERE password = ?`, [newPassword, oldPassword]);
+	await database.transactionQuery(transaction, `UPDATE ${tableNames.sessions} SET password = ? WHERE password = ?`, [newPassword, oldPassword]);
 	await transaction.commit();
 
 	return {
@@ -142,12 +143,12 @@ export async function deleteUser(password) {
 		throw noUserError;
 	}
 
-	await database.transactionQuery(transaction, "DELETE FROM api_keys_v2 WHERE password = ?", [password]);
+	await database.transactionQuery(transaction, `DELETE FROM ${tableNames.api_keys} WHERE password = ?`, [password]);
 	await transaction.commit();
 }
 
 export async function listSessions(password) {
-	const userSessions = await database.singleQueryPromisify("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ?", [password]);
+	const userSessions = await database.singleQueryPromisify(`SELECT session_id, startTime, endTime FROM ${tableNames.sessions} WHERE password = ?`, [password]);
 	if(userSessions.length === 0) {
 		if(!TESTING) console.warn("No sessions for user");
 		return null;
@@ -157,7 +158,7 @@ export async function listSessions(password) {
 
 export async function getLatestSession(password) {
 	// Assumption made that user.session is kept up-to-date
-	const latestSessionRes = await database.singleQueryPromisify("SELECT s.session_id, s.startTime, s.endTime FROM sessions_v2 s RIGHT JOIN users_v2 u ON u.session = s.session_id WHERE u.password = ?", [password]);
+	const latestSessionRes = await database.singleQueryPromisify(`SELECT s.session_id, s.startTime, s.endTime FROM ${tableNames.sessions} s RIGHT JOIN ${tableNames.users} u ON u.session = s.session_id WHERE u.password = ?`, [password]);
 	if(latestSessionRes.length === 0 || latestSessionRes[0].session_id === null) {
 		// console.warn("No latest session for user");
 		return null;

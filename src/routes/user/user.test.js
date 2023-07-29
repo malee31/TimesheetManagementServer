@@ -1,5 +1,6 @@
 const request = require("supertest");
 const { insertTestUser, generateTestUserObj, insertApiKey, insertTestSession, generateTimes, associateSession } = require("../../utils/testUtils.js");
+const { listSessions } = require("../../database/database-interface.js");
 
 let mockedDBI;
 let app;
@@ -195,8 +196,7 @@ describe("DELETE /", () => {
 });
 
 describe("PATCH /password", () => {
-	// TODO: Integration test the new password
-	// TODO: Integration test the old API keys
+	// TODO: Ensure past sessions are keyed to the new password as well
 	it("Successfully Changes Password", async () => {
 		const testUser = await insertTestUser(generateTestUserObj("Change Password User"));
 		const testApiKeyRows = await Promise.all([
@@ -204,6 +204,8 @@ describe("PATCH /password", () => {
 			insertApiKey(testUser.password, "U-User-Password-Change-2", true),
 			insertApiKey(testUser.password, "U-User-Password-Change-3")
 		]);
+		const NUM_TEST_SESSIONS = 10;
+		await insertTestSession(generateTimes(testUser.password, NUM_TEST_SESSIONS));
 
 		const newPassword = generateTestUserObj().password;
 
@@ -228,6 +230,8 @@ describe("PATCH /password", () => {
 			return mockedDBI.apiKeyLookup(oldApiKeyRow.api_key);
 		}));
 		expect(apiKeyCheckAll.every(checkApiKeyRows => checkApiKeyRows[0].password === newPassword)).toBeTrue();
+		expect(mockedDBI.listSessions(testUser.password)).resolves.toBeNull();
+		expect(mockedDBI.listSessions(newPassword)).resolves.toBeArrayOfSize(NUM_TEST_SESSIONS);
 	});
 
 	it("Handles Password Change Conflicts", async () => {
@@ -279,16 +283,21 @@ describe("GET /status", () => {
 
 describe("GET /sessions", () => {
 	it("Successfully Obtains User Sessions", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("User Session List Fetch"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-User-Session-List-Fetch");
+		const NUM_TEST_SESSIONS = 11;
+		await insertTestSession(generateTimes(testUser.password, NUM_TEST_SESSIONS));
+
 		const res = await request(app)
 			.get("/user/sessions")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-A-Key");
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`);
 
 		expect(res.statusCode).toBe(200);
 		expect(res.body).toMatchObject({
 			ok: true,
-			sessions: expect.toBeArray()
+			sessions: expect.toBeArrayOfSize(NUM_TEST_SESSIONS)
 		});
 
 		res.body.sessions.forEach(session => {
@@ -301,11 +310,14 @@ describe("GET /sessions", () => {
 	});
 
 	it("Handles No User Sessions Exist", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("User Session List Fetch Nothing"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-User-Session-List-Fetch-Nothing");
+
 		const res = await request(app)
 			.get("/user/sessions")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-D-Key");
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`);
 
 		expect(res.statusCode).toBe(200);
 		expect(res.body).toMatchObject({
@@ -401,6 +413,7 @@ describe("POST /sessions", () => {
 	});
 
 	// TODO: Consider handling ongoing sessions being overwritten, overlaps, or strange history
+	// TODO: Consider handling passwords that don't exist
 	it("Successfully Adds Arbitrary Sessions", async () => {
 		const res = await request(app)
 			.post("/user/sessions")
