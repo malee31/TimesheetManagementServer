@@ -1,12 +1,13 @@
 const request = require("supertest");
+const { insertTestUser, generateTestUserObj, insertApiKey, insertTestSession, generateTimes, associateSession } = require("../../utils/testUtils.js");
 
 let mockedDBI;
 let app;
 
-beforeEach(() => {
+beforeAll(async () => {
 	jest.mock("../../database/database-interface.js");
 	mockedDBI = require("../../database/database-interface.js");
-	mockedDBI.setSampleData();
+	await mockedDBI.setupTestingDatabase();
 
 	const appExports = require("../../app.js");
 	appExports.activateApiRouter();
@@ -14,25 +15,7 @@ beforeEach(() => {
 });
 
 describe("GET /", () => {
-	it("Fetches Existing User", async () => {
-		const res = await request(app)
-			.get("/user/")
-			.set("Accept", "application/json")
-			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-A-Key");
-
-		expect(res.headers["content-type"]).toMatch(/json/);
-		expect(res.statusCode).toBe(200);
-		expect(res.body).toMatchObject({
-			ok: true,
-			id: 1,
-			first_name: "test-a",
-			last_name: "last-a",
-			session: expect.toBeOneOf([null, expect.any(Number)])
-		});
-	});
-
-	// TODO: Reconsider test. This ends up testing the middleware instead
+	// TODO: Reconsider test. This ends up indirectly testing the middleware instead
 	it("Fetches Nonexistent User", async () => {
 		const res = await request(app)
 			.get("/user/")
@@ -45,6 +28,50 @@ describe("GET /", () => {
 		expect(res.body).toMatchObject({
 			ok: false,
 			error: "user_not_found"
+		});
+	});
+
+	it("Fetches Existing User Without Sessions", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("User Fetch Test (No Sessions)"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-User-Fetch-No-Sessions");
+
+		const res = await request(app)
+			.get("/user/")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`);
+
+		expect(res.headers["content-type"]).toMatch(/json/);
+		expect(res.statusCode).toBe(200);
+		expect(res.body).toMatchObject({
+			ok: true,
+			id: testUser.id,
+			first_name: testUser.first_name,
+			last_name: testUser.last_name,
+			session: null
+		});
+	});
+
+	it("Fetches Existing User With Sessions", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("User Fetch Test (No Sessions)"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-User-Fetch-With-Sessions");
+		const testSession = (await insertTestSession(generateTimes(testUser.password)))[0];
+		await associateSession(testUser.password, testSession.session_id);
+
+		const res = await request(app)
+			.get("/user/")
+			.set("Accept", "application/json")
+			.set("Content-Type", "application/json; charset=utf-8")
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`);
+
+		expect(res.headers["content-type"]).toMatch(/json/);
+		expect(res.statusCode).toBe(200);
+		expect(res.body).toMatchObject({
+			ok: true,
+			id: testUser.id,
+			first_name: testUser.first_name,
+			last_name: testUser.last_name,
+			session: testSession.session_id
 		});
 	});
 });
@@ -90,6 +117,8 @@ describe("POST /", () => {
 	});
 
 	it("Fails To Create User With Existing Password", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("User Pre-existing Conflict Test"));
+
 		const res = await request(app)
 			.post("/user/")
 			.set("Accept", "application/json")
@@ -98,7 +127,7 @@ describe("POST /", () => {
 			.send({
 				firstName: "test-a-imposter",
 				lastName: "last-a",
-				password: "pw-a"
+				password: testUser.password
 			});
 
 		expect(res.statusCode).toBe(409);
@@ -125,13 +154,15 @@ describe("DELETE /", () => {
 	});
 
 	it("Successfully Deletes User", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("User To Be Deleted"));
+
 		const res = await request(app)
 			.delete("/user/")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
 			.set("Authorization", "Bearer A-Admin-Key")
 			.send({
-				password: "pw-a"
+				password: testUser.password
 			});
 
 		expect(res.statusCode).toBe(200);
@@ -140,12 +171,12 @@ describe("DELETE /", () => {
 			ok: true,
 			message: "Successfully Deleted User"
 		});
-		expect(await mockedDBI.getUser("pw-a")).toBeNull();
+		expect(mockedDBI.getUser(testUser.password)).resolves.toBeNull();
 	});
 
 	// TODO: Decide whether deletion should be permanent
-	// TODO: Decide whether not found should be already deleted or simply 404
-	it("Already Deleted User", async () => {
+	// TODO: Decide whether not found should be already deleted or simply 404 as a result of above
+	it("Already Deleted/Nonexistent User", async () => {
 		const res = await request(app)
 			.delete("/user/")
 			.set("Accept", "application/json")
@@ -167,13 +198,22 @@ describe("PATCH /password", () => {
 	// TODO: Integration test the new password
 	// TODO: Integration test the old API keys
 	it("Successfully Changes Password", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("Change Password User"));
+		const testApiKeyRows = await Promise.all([
+			insertApiKey(testUser.password, "U-User-Password-Change-1"),
+			insertApiKey(testUser.password, "U-User-Password-Change-2", true),
+			insertApiKey(testUser.password, "U-User-Password-Change-3")
+		]);
+
+		const newPassword = generateTestUserObj().password;
+
 		const res = await request(app)
 			.patch("/user/password")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-A-Key")
+			.set("Authorization", `Bearer ${testApiKeyRows[0].api_key}`)
 			.send({
-				new_password: "pw-A-new"
+				new_password: newPassword
 			});
 
 		expect(res.statusCode).toBe(200);
@@ -181,16 +221,27 @@ describe("PATCH /password", () => {
 			ok: true,
 			message: "Password Successfully Changed"
 		});
+
+		expect(mockedDBI.getUser(testUser.password)).resolves.toBeNull();
+		expect(mockedDBI.getUser(newPassword)).resolves.not.toBeNull();
+		const apiKeyCheckAll = await Promise.all(testApiKeyRows.map(oldApiKeyRow => {
+			return mockedDBI.apiKeyLookup(oldApiKeyRow.api_key);
+		}));
+		expect(apiKeyCheckAll.every(checkApiKeyRows => checkApiKeyRows[0].password === newPassword)).toBeTrue();
 	});
 
 	it("Handles Password Conflicts", async () => {
+		const testUserAChange = await insertTestUser(generateTestUserObj("User Password Change To Conflict"));
+		const testUserBConflict = await insertTestUser(generateTestUserObj("User Password Change To Conflicted"));
+		const testApiKeyRowUserA = await insertApiKey(testUserAChange.password, "U-User-Non-Conflicting-Password");
+
 		const res = await request(app)
 			.patch("/user/password")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-A-Key")
+			.set("Authorization", `Bearer ${testApiKeyRowUserA.api_key}`)
 			.send({
-				new_password: "pw-d"
+				new_password: testUserBConflict.password
 			});
 
 		expect(res.statusCode).toBe(409);
@@ -202,21 +253,25 @@ describe("PATCH /password", () => {
 });
 
 describe("GET /status", () => {
+	// TODO: Split up test into null vs non-null
 	it("Successfully Obtains User Status", async () => {
+		const testUser = await insertTestUser(generateTestUserObj("User Status Get"));
+		const testApiKeyRow = await insertApiKey(testUser.password, "U-User-Status-Get");
+
 		const res = await request(app)
 			.get("/user/status")
 			.set("Accept", "application/json")
 			.set("Content-Type", "application/json; charset=utf-8")
-			.set("Authorization", "Bearer U-User-A-Key");
+			.set("Authorization", `Bearer ${testApiKeyRow.api_key}`);
 
 		expect(res.statusCode).toBe(200);
 		expect(res.body).toMatchObject({
 			ok: true,
 			user: {
 				id: expect.any(Number),
-				first_name: "test-a",
-				last_name: "last-a",
-				session: expect.toBeOneOf([null, expect.toBeObject()])
+				first_name: testUser.first_name,
+				last_name: testUser.last_name,
+				session: null
 			}
 		});
 	});
