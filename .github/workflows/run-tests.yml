@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Oddly, the way GitHub Actions runs code results in the template .env files not being found
     env:
       ALLOW_TESTING_ON_PROD: true

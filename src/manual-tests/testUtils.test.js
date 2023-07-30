@@ -11,7 +11,7 @@ describe("User Test Utility Inserts As Intended", () => {
 	it("Inserts non-pre-existing user", async () => {
 		const password = "testUtils-user-password-entry-1";
 
-		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.users} WHERE password = ?`, [password], true);
+		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT * FROM ${tableNames.users} WHERE password = ?`, [password], true);
 		expect(existenceCheckBefore.length).toBe(0);
 
 		await insertTestUser({
@@ -20,7 +20,7 @@ describe("User Test Utility Inserts As Intended", () => {
 			password: password
 		});
 
-		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.users} WHERE password = ?`, [password], true);
+		const existenceCheckAfter = await database.singleQueryPromisify(`SELECT * FROM ${tableNames.users} WHERE password = ?`, [password], true);
 		expect(existenceCheckAfter.length).toBe(1);
 	});
 
@@ -149,7 +149,7 @@ describe("Session Association Test Utility Updates As Intended", () => {
 	it("Associates new session", async () => {
 		const password = "testUtils-session-associate-password-entry-1";
 		// Create a user
-		const userRes = await database.singleQueryPromisify(`INSERT INTO ${tableNames.users} (first_name, last_name, password) VALUES (?, ?, ?)`, ["Test Util Session Association", "User", password], true);
+		const userRes = await database.singleQueryPromisify(`INSERT INTO ${tableNames.users} (first_name, last_name, password) VALUES (?, ?, ?)`, ["Test Util Session Association", "User", password]);
 		expect(userRes.affectedRows).toBe(1);
 
 		const existenceCheckBefore = await database.singleQueryPromisify(`SELECT 1 FROM ${tableNames.sessions} WHERE password = ?`, [password], true);

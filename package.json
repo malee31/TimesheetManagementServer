@@ -7,7 +7,8 @@
 	"scripts": {
 		"start": "node .",
 		"develop": "npx nodemon .",
-		"test": "jest"
+		"test": "jest",
+		"manual-tests": "jest --forceExit --testPathIgnorePatterns='\\.ignored' --testPathPattern='src/manual-tests/.*.test.js'"
 	},
 	"repository": {
 		"type": "git",
