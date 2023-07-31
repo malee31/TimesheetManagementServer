@@ -19,7 +19,9 @@ let pool = mysql.createPool({
 	user: MYSQL_USER,
 	password: MYSQL_PASSWORD,
 	database: MYSQL_DATABASE,
-	connectionLimit: 10
+	connectionLimit: 10,
+	queueLimit: 10,
+	waitForConnections: true
 });
 
 function promisifyConnection() {
