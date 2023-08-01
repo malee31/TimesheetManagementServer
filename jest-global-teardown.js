@@ -14,6 +14,7 @@ export default async function globalTeardown() {
 
 export async function _globalTeardown(nonceDir, nonceFile = "") {
 	// console.log("===== Teardown Start =====");
+	if(process.env.SKIP_TEARDOWN) return;
 
 	// TODO: Take a snapshot of the database
 	// Tears down the test database
