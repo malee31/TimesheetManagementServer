@@ -154,9 +154,6 @@ async function start(skipTableCreation = false) {
 			console.error(err);
 		});
 
-	 // Change isolation level from REPEATABLE READ to READ COMMITTED. Unknown if it makes any significant performance improvement
-	 await singleQueryPromisify("SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED");
-
 	if(!skipTableCreation) {
 		// Create tables if they do not already exist
 		if(!TESTING) console.log("Setting Up Tables");
