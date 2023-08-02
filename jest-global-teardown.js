@@ -9,18 +9,22 @@ export default async function globalTeardown() {
 		throw new Error("This function should only be run by Jest. Use _globalTeardown() instead");
 	}
 
+	if(process.env.SKIP_TEARDOWN) {
+		console.log("Teardown Skipped (SKIP_TEARDOWN is set)");
+		return;
+	}
+
 	await _globalTeardown(path.dirname(global.nonceFile), global.nonceFile);
 }
 
 export async function _globalTeardown(nonceDir, nonceFile = "") {
 	// console.log("===== Teardown Start =====");
-	if(process.env.SKIP_TEARDOWN) return;
 
 	// TODO: Take a snapshot of the database
 	// Tears down the test database
 	await database.start(true);
 	await database._dropTables();
-	if(global.setupUsed) {
+	if(global.setupUsed || global.teardownOnly) {
 		await database.end();
 	}
 
@@ -54,7 +58,8 @@ if(path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url)
 
 	console.log("Beginning Teardown ONLY");
 
-	globalTeardown()
+	global.teardownOnly = true;
+	_globalTeardown(nonceDir)
 		.then(() => {
 			console.log("Teardown Complete");
 			console.log("Wiping contents of nonce directory so that setup doesn't complain about teardown not being run next time");

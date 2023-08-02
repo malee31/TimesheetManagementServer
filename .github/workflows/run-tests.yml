@@ -13,6 +13,7 @@ jobs:
     # Oddly, the way GitHub Actions runs code results in the template .env files not being found
     env:
       ALLOW_TESTING_ON_PROD: true
+      SKIP_TEARDOWN: true
       MYSQL_HOST: localhost
       MYSQL_USER: mysql
       MYSQL_PASSWORD: password
