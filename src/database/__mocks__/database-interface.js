@@ -18,7 +18,7 @@ mockedDBI.setupTestingDatabase = async () => {
 		throw new Error("Refusing to connect to Production DB in testing");
 	}
 	Object.assign(mockedDBI, actualDBI);
-	await actualDatabase.start();
+	// await actualDatabase.start();
 }
 
 module.exports = mockedDBI;

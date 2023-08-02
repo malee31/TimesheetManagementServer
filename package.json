@@ -8,7 +8,8 @@
 		"start": "node .",
 		"develop": "npx nodemon .",
 		"test": "jest",
-		"manual-tests": "jest --forceExit --testPathIgnorePatterns='\\.ignored' --testPathPattern='src/manual-tests/.*.test.js'"
+		"manual-tests": "jest --forceExit --testPathIgnorePatterns='\\.ignored' --testPathPattern='src/manual-tests/.*.test.js'",
+		"ci-tests": "jest --forceExit --detectOpenHandles --seed=-103702426 --showSeed"
 	},
 	"repository": {
 		"type": "git",

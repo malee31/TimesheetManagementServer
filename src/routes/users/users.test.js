@@ -7,7 +7,7 @@ let app;
 beforeAll(async () => {
 	jest.mock("../../database/database-interface.js");
 	mockedDBI = require("../../database/database-interface.js");
-	mockedDBI.setupTestingDatabase();
+	await mockedDBI.setupTestingDatabase();
 
 	const appExports = require("../../app.js");
 	appExports.activateApiRouter();
@@ -17,9 +17,12 @@ beforeAll(async () => {
 	// Decreasing these constants may fail some tests
 	const MIN_NUM_USERS = 10;
 	const MIN_NUM_SESSIONS = 10;
-	const generatedUsers = await Promise.all(Array(MIN_NUM_USERS).fill(0).map((_, index) => {
-		return insertTestUser(generateTestUserObj("Users Endpoint Minimum User", `Number ${index}`));
-	}));
+
+	const generatedUsers = [];
+	for(let userNum = 0; userNum < MIN_NUM_USERS; userNum++) {
+		const newTestUser = await insertTestUser(generateTestUserObj("Users Endpoint Minimum User", `Number ${userNum}`));
+		generatedUsers.push(newTestUser);
+	}
 
 	// Attaches first half of the sessions to the first user and the second half to the second. The others have no sessions
 	// Order irrelevant
@@ -31,7 +34,7 @@ beforeAll(async () => {
 		associateSession(generatedUsers[0].password, firstHalfSessions[firstHalfSessions.length - 1].session_id),
 		associateSession(generatedUsers[1].password, secondHalfSessions[secondHalfSessions.length - 1].session_id)
 	]);
-});
+}, 10000);
 
 describe("GET /", () => {
 	it("Fetches All Users", async () => {

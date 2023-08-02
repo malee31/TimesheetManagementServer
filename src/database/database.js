@@ -41,25 +41,8 @@ function promisifyConnection() {
 
 // Optional 3rd parameter for endMode which when set, will destroy connections instead of releasing them for reuse
 async function singleQueryPromisify(query, args = [], endMode = false) {
-	const connection = await promisifyConnection();
-
 	return await new Promise((resolve, reject) => {
-		const connectionError = err => {
-			connection.release();
-			if(endMode) {
-				connection.destroy();
-			}
-			reject(err);
-		};
-
-		connection.once("error", connectionError);
-
-		connection.query(query, args, (err, res) => {
-			connection.removeListener("error", connectionError);
-			connection.release();
-			if(endMode) {
-				connection.destroy();
-			}
+		pool.query(query, args, (err, res) => {
 			if(err) return reject(err);
 			resolve(res);
 		});
@@ -170,6 +153,9 @@ async function start(skipTableCreation = false) {
 			console.warn("Failed To Confirm Connection:");
 			console.error(err);
 		});
+
+	 // Change isolation level from REPEATABLE READ to READ COMMITTED. Unknown if it makes any significant performance improvement
+	 await singleQueryPromisify("SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED");
 
 	if(!skipTableCreation) {
 		// Create tables if they do not already exist

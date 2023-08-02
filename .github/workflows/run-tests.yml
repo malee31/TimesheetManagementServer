@@ -52,4 +52,4 @@ jobs:
       - name: Install Dependencies
         run: npm ci
       - name: Run Tests
-        run: npm run test -- --forceExit
+        run: npm run ci-tests

@@ -71,7 +71,8 @@ export async function getAllUsersWithStatus() {
 }
 
 export async function getUser(password) {
-	const users = await database.singleQueryPromisify("SELECT id, first_name, last_name, session FROM users_v2 WHERE password = ?", [password]);
+	// Uses a non-repeatable read due to READ COMMITTED isolation level  being used to avoid locking
+	const users = await database.singleQueryPromisify("SELECT id, first_name, last_name, session FROM users_v2 WHERE password = ?;", [password]);
 	if(!users.length) return null;
 	return users[0];
 }
