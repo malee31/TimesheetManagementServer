@@ -2,7 +2,6 @@ const { TESTING } = require("../../../config.js");
 const actualDatabase = require("../database.js").default;
 const actualDBI = jest.requireActual("../database-interface.js");
 const mockedDBI = jest.createMockFromModule("../database-interface.js");
-Object.assign(mockedDBI, {});
 
 // TODO: Complete list of tasks
 // - Create global setup and teardown for database
