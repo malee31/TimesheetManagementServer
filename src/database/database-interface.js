@@ -1,6 +1,6 @@
 import database from "./database.js";
 import { makeNewApiKey } from "../utils/apiKey.js";
-import { TESTING } from "../../config";
+import { TESTING } from "../../config.js";
 import tableNames from "./table-names.js";
 
 // This file acts as an abstraction layer between the database and the code for easy compatibility with any database
