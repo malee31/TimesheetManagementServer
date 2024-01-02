@@ -1,10 +1,8 @@
-const mockedDatabaseInterface = require("../../test/mock-database-interface.js");
-
 const { TESTING } = require("../../../config.js");
 const actualDatabase = require("../database.js").default;
 const actualDBI = jest.requireActual("../database-interface.js");
 const mockedDBI = jest.createMockFromModule("../database-interface.js");
-Object.assign(mockedDBI, mockedDatabaseInterface);
+Object.assign(mockedDBI, {});
 
 // TODO: Complete list of tasks
 // - Create global setup and teardown for database
@@ -18,7 +16,7 @@ mockedDBI.setupTestingDatabase = async () => {
 		throw new Error("Refusing to connect to Production DB in testing");
 	}
 	Object.assign(mockedDBI, actualDBI);
-	// await actualDatabase.start();
+	await actualDatabase.start();
 }
 
 module.exports = mockedDBI;

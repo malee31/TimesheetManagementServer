@@ -4,10 +4,10 @@ const { insertTestUser, generateTestUserObj, insertApiKey, insertTestSession, ge
 let mockedDBI;
 let app;
 
-beforeAll(() => {
+beforeAll(async () => {
 	jest.mock("../../../database/database-interface.js");
 	mockedDBI = require("../../../database/database-interface.js");
-	mockedDBI.setupTestingDatabase();
+	await mockedDBI.setupTestingDatabase();
 
 	const appExports = require("../../../app.js");
 	appExports.activateApiRouter();
