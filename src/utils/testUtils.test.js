@@ -1,6 +1,6 @@
 import database from "../database/database.js";
 import tableNames from "../database/table-names.js";
-import { associateSession, insertApiKey, insertTestSession, insertTestUser } from "../utils/testUtils.js";
+import { associateSession, insertApiKey, insertTestSession, insertTestUser } from "./testUtils.js";
 
 // Note: This file has a few lines of code repeated from the source of testUtils.js but that is intentional
 //       That way, even if the testUtils source code changes, the tests will not couple and depend on each other
