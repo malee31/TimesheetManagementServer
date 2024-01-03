@@ -13,12 +13,13 @@ Then follow these steps:
 1. Clone this repository
 2. Copy `template.env` and name the copy `.env`
 3. Open `.env` and place your MySQL connection information in the lines they correspond to
-4. Choose a port in `.env` or leave it as the default `3000`
-5. Install dependencies with `npm install` or (`npm install --save-dev` to include test libraries)
-6. (Optional) Run `npm test` to run tests on the database (it will clean up after itself)
-7. Run one of the following commands:
-	* `npm start` to start the server normally
-	* `npm run develop` to start the server in development mode (automatically restarts after the code changes)
+4. Set the `ADMIN_KEY` to a secure admin password (Must start with `A-`)
+5. Choose a port in `.env` or leave it as the default `3000`
+6. Install dependencies with `npm install` or (`npm install --save-dev` to include test libraries)
+7. (Optional) Run `npm test` to run tests on the database (it will clean up after itself)
+8. Run one of the following commands:
+   * `npm start` to start the server normally
+   * `npm run develop` to start the server in development mode (automatically restarts after the code changes)
 
 ## Documentation
 API documentation can be found in `API.md` until a proper documentation site is written out.
