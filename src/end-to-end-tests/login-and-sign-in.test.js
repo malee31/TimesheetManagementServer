@@ -1,5 +1,6 @@
 const request = require("supertest");
 
+const e2ePassword = "e2e-login-test-password";
 let mockedDBI;
 let app;
 
@@ -12,25 +13,15 @@ beforeEach(async () => {
 	const appExports = require("../app.js");
 	appExports.activateApiRouter();
 	app = appExports.default;
+
+	await mockedDBI.createUser({
+		firstName: "e2e-login-test-user",
+		lastName: "e2e-last-name",
+		password: e2ePassword
+	});
 });
 
 it("Log In + Sign In", async () => {
-	// TODO: Skip creating a user and use a pre-made user
-	const e2ePassword = "e2e-login-test-password";
-	const createRes = await request(app)
-		.post("/user")
-		.set("Accept", "application/json")
-		.set("Content-Type", "application/json; charset=utf-8")
-		.set("Authorization", "Bearer A-Admin-Key")
-		.send({
-			firstName: "e2e-login-test-user",
-			lastName: "e2e-last-name",
-			password: e2ePassword
-		});
-
-	expect(createRes.statusCode).toBe(201);
-	expect(createRes.body.password).toBe(e2ePassword);
-
 	const loginRes = await request(app)
 		.post("/user/auth/exchange")
 		.set("Accept", "application/json")
