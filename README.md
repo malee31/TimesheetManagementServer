@@ -32,6 +32,12 @@ Run the unit tests by running `npm test`.
 Write any `*.test.js` unit test files in the same folder as the corresponding `*.js` file.  
 Place end-to-end tests in `src/end-to-end-tests` with a file name that describes the frontend functionality it is attempting to test.
 
+## Development Architecture
+The server utilizes Express.js with Node.js to run a server and utilizes its middleware to abstract away and reuse a majority of the authentication process.  
+The server utilizes MySQL as its database but can be adapted to any database by overwriting the corresponding functions in `database-interface.js` with the new database's equivalent.
+Tests utilize `jest` with additional matchers from `jest-extended`.  
+Environment variables are loaded from `.env` by default and from both `testing.env` and `mock.env` during testing. 
+
 ### False Assumptions
 Tests run in parallel with each other and have a chance to affect each other as a result.  
 To minimize the chances of that happening, follow the guidelines in this section.
