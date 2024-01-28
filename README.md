@@ -18,8 +18,8 @@ Then follow these steps:
 6. Install dependencies with `npm install` or (`npm install --save-dev` to include test libraries)
 7. (Optional) Run `npm test` to run tests on the database (it will clean up after itself)
 8. Run one of the following commands:
-   * `npm start` to start the server normally
-   * `npm run develop` to start the server in development mode (automatically restarts after the code changes)
+	* `npm start` to start the server normally
+	* `npm run develop` to start the server in development mode (automatically restarts after the code changes)
 
 ## Documentation
 API documentation can be found in `API.md` until a proper documentation site is written out.
@@ -36,7 +36,7 @@ Place end-to-end tests in `src/end-to-end-tests` with a file name that describes
 The server utilizes Express.js with Node.js to run a server and utilizes its middleware to abstract away and reuse a majority of the authentication process.  
 The server utilizes MySQL as its database but can be adapted to any database by overwriting the corresponding functions in `database-interface.js` with the new database's equivalent.
 Tests utilize `jest` with additional matchers from `jest-extended`.  
-Environment variables are loaded from `.env` by default and from both `testing.env` and `mock.env` during testing. 
+Environment variables are loaded from `.env` by default and from both `testing.env` and `mock.env` during testing.
 
 ### False Assumptions
 Tests run in parallel with each other and have a chance to affect each other as a result.  

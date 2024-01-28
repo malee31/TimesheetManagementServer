@@ -177,7 +177,7 @@ export async function getLatestSession(password) {
  * @param {boolean} [skipUpdate = false] - If not explicitly set to true, the new session will be set as the user's latest session
  * @return {Object} Returns the new session object
  */
-export async function createSession(password, startTime, endTime = null, skipUpdate=false) {
+export async function createSession(password, startTime, endTime = null, skipUpdate = false) {
 	await database.singleQueryPromisify("INSERT INTO sessions_v2 VALUES(NULL, ?, ?, ?)", [password, startTime, endTime]);
 	let newSession;
 	if(endTime === null) {
