@@ -1,5 +1,10 @@
 /**
  * @file Database Wrapper
+ * Contains the setup and teardown functions for Sequelize and exports a client for the `database-interface.js` to use.
+ *
+ * This is a separate file for legacy reasons.
+ * This used to contain wrapper functions around `mysql` to covert its methods into Promises.
+ * That functionality has been superseded with the use of the Sequelize ORM.
  * A (relatively) low-level wrapper around the database to create Promises out of database queries.
  * Other libraries like `mysql2` contain these features but `mysql` is being used for legacy reasons at the moment.
  * Note: This file does not have a dedicated test script. It is mostly assumed to either work or completely crash.
@@ -7,114 +12,24 @@
  */
 
 // Configure SQL credentials from environment variables
-import mysql from "mysql";
+import { Sequelize } from "sequelize";
 import tableNames from "./table-names.js";
 import schemas from "./table-schemas.js";
 import { MYSQL_DATABASE, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_USER, TESTING } from "../../config.js";
 
-// Note: Before use, guarantee that the connection is active and the tables have been set up with start()
-//       Beware that calling start() is *NOT* mandatory and not guaranteed to be called before all other functions
-let pool = mysql.createPool({
+// Note: Before use, guarantee that the connection is active and the tables have been set up by calling start()
+//       Beware that calling start() is *NOT* mandatory by design and not guaranteed to be called before all other functions
+const sequelize = new Sequelize(MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD, {
+	dialect: "mysql",
 	host: MYSQL_HOST,
-	user: MYSQL_USER,
-	password: MYSQL_PASSWORD,
-	database: MYSQL_DATABASE,
 	connectionLimit: 10,
-	queueLimit: 10,
-	waitForConnections: true
+	queueLimit: 20,
+	waitForConnections: true,
+	logging: false
 });
 
-function promisifyConnection() {
-	return new Promise((resolve, reject) => {
-		pool.getConnection((err, connection) => {
-			if(err) {
-				if(connection?.release) {
-					connection.release();
-				}
-				reject(err);
-			}
-
-			resolve(connection);
-		});
-	});
-}
-
-// Optional 3rd parameter for endMode which when set, will destroy connections instead of releasing them for reuse
-async function singleQueryPromisify(query, args = [], endMode = false) {
-	return await new Promise((resolve, reject) => {
-		pool.query(query, args, (err, res) => {
-			if(err) return reject(err);
-			resolve(res);
-		});
-	});
-}
-
-async function transactionPromisify() {
-	const connection = await promisifyConnection();
-
-	return new Promise((resolve, reject) => {
-		const connectionError = err => {
-			connection.release();
-			return reject(err);
-		};
-
-		connection.once("error", connectionError);
-
-		connection.beginTransaction(err => {
-			if(err) {
-				return connectionError(err);
-			}
-
-			const rollback = async () => {
-				return new Promise(resolve => {
-					connection.rollback(err => {
-						connection.removeListener("error", connectionError);
-						connection.release();
-						if(err) {
-							return reject(err);
-						}
-						resolve();
-					});
-				});
-			};
-
-			const commit = async () => {
-				return new Promise((resolve, reject) => {
-					connection.commit(async err => {
-						connection.removeListener("error", connectionError);
-						if(err) {
-							await rollback();
-							return reject(err);
-						}
-						connection.removeListener("error", connectionError);
-						connection.release();
-						resolve();
-					});
-				});
-			};
-
-			resolve({
-				commit: commit,
-				rollback: rollback,
-				connection: connection
-			});
-		});
-	});
-}
-
-function transactionQuery(transaction, query, ...args) {
-	// Don't forget to await transaction.commit()!
-	return new Promise((resolve, reject) => {
-		transaction.connection.query(query, ...args, async (err, res) => {
-			if(err) {
-				await transaction.rollback();
-				return reject(err);
-			}
-			resolve(res);
-		});
-	});
-}
-
+// Generates tables if they do not exist
+// WARNING: Will not modify tables with an updated schema if they already exist
 async function createTables() {
 	const sessionsTableCreate = singleQueryPromisify(schemas.sessions);
 	const apiKeysTableCreate = singleQueryPromisify(schemas.apiKeys);
@@ -128,6 +43,8 @@ async function createTables() {
 	]);
 }
 
+// Purges all tables and data
+// Restarting the server should regenerate new tables using createTables()
 async function dropTables() {
 	const usersTableDrop = singleQueryPromisify(`DROP TABLE IF EXISTS ${tableNames.users}`);
 	const apiKeysTableDrop = singleQueryPromisify(`DROP TABLE IF EXISTS ${tableNames.api_keys}`);
@@ -141,6 +58,8 @@ async function dropTables() {
 	]);
 }
 
+
+// Sets up and starts up the database
 async function start(skipTableCreation = false) {
 	if(!TESTING) console.log("Creating And Testing A Connection");
 
@@ -168,23 +87,54 @@ async function start(skipTableCreation = false) {
 	}
 }
 
+// Permanently closes the database connection until the server is restarted
 async function end() {
 	// Note: Any other cleanup tasks may go here
-	await new Promise((resolve, reject) => pool.end(err => {
-		if(err) {
-			return reject(err);
-		}
-		resolve();
-	}));
+	await sequelize.close();
 }
 
-const database = {
-	start: start,
-	end: end,
-	singleQueryPromisify: singleQueryPromisify,
-	transactionPromisify: transactionPromisify,
-	transactionQuery: transactionQuery,
-	_dropTables: dropTables
-};
 
-export default database;
+
+// TODO: Rework return values
+async function singleQueryPromisify(query, args = []) {
+	const [res, metadata] = await sequelize.query(query, {
+		replacements: args.flat()
+	});
+	return [res, metadata];
+}
+
+async function transactionPromisify() {
+	return await sequelize.transaction();
+}
+
+// TODO: Rework return values
+async function transactionQuery(transaction, query, ...args) {
+	// Don't forget to await transaction.commit()!
+	try {
+		const [res, metadata] = await sequelize.query(query, {
+			replacements: args.flat(),
+			transaction: transaction
+		});
+
+		console.log(query)
+		console.log(res)
+
+		return [res, metadata];
+	} catch(err) {
+		console.log(`[ROLLBACK] Failed Query: ${query}`);
+		console.error(err);
+		await transaction.rollback();
+		throw err;
+	}
+}
+
+
+export { start, end };
+export const _dropTables = dropTables;
+export { singleQueryPromisify };
+export { transactionPromisify };
+export { transactionQuery };
+
+// Import in other files as `db` for brevity
+const db = sequelize;  // Constant declared to hint IDEs to automatically import `db` from this file
+export default db;

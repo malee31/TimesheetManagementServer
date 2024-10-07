@@ -1,6 +1,6 @@
 import * as matchers from "jest-extended";
 import * as testUtils from "./src/utils/testUtils.js";
-import database from "./src/database/database.js";
+import * as database from "./src/database/database.js";
 
 global._utils = testUtils;
 

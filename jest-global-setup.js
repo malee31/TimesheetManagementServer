@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
 import { _globalTeardown } from "./jest-global-teardown.js";
 import * as CONFIG from "./config.js";
-import database from "./src/database/database.js";
+import {start as databaseStart} from "./src/database/database.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +21,7 @@ export default async function globalSetup() {
 	await _setupNonce();
 
 	// Creates tables
-	await database.start();
+	await databaseStart();
 	// All tests can now instantiate their own data with createUser() and createSession()
 	// Tests may import convenience methods from testUtils.js
 }

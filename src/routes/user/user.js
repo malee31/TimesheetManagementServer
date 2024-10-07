@@ -68,11 +68,11 @@ userRouter.post("/", [authMiddleware.admin, noBodyErrors], async (req, res) => {
 
 		return res.status(201).send(newUser);
 	} catch(err) {
+		if(err.name === "SequelizeUniqueConstraintError") {
+			return res.status(409).send(userErrors.password_in_use)
+		}
 		if(err.code === "user_data_not_nonempty_strings") {
 			return res.status(403).send(userErrors[err.code]);
-		}
-		if(err.code === "ER_DUP_ENTRY") {
-			return res.status(409).send(userErrors.password_in_use)
 		}
 		console.warn("Unknown error while creating user:");
 		console.error(err);

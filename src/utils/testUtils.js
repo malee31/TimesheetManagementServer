@@ -11,8 +11,10 @@
 
 // This function generates user details to use in tests with optional name overriding. Pass the output directly to createUser()
 import { v4 as uuidv4 } from "uuid";
-import database from "../database/database.js";
+import db from "../database/database.js";
+import * as database from "../database/database.js";
 import tableNames from "../database/table-names.js";
+import { QueryTypes } from "sequelize";
 
 export function generateTestUserObj(firstName = "Test", lastName = "User") {
 	if(typeof firstName !== "string" || typeof lastName !== "string") throw TypeError("Name overrides must be strings");
@@ -60,10 +62,21 @@ export function generateTimes(password, numSessions = 1, ongoing = false) {
 export async function insertTestUser(testUserObj) {
 	// Schema dependent. Modify if schema ever changes
 	// Note: Conflicts are disallowed on a database level
-	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.users} (first_name, last_name, password) VALUES (?, ?, ?)`, [testUserObj.firstName, testUserObj.lastName, testUserObj.password]);
-	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
+	const [insertId] = await db.query(`INSERT INTO ${tableNames.users} (first_name, last_name, password)
+                                       VALUES (?, ?, ?)`, {
+		type: QueryTypes.INSERT,
+		replacements: [testUserObj.firstName, testUserObj.lastName, testUserObj.password]
+	});
+	if(!insertId >= 1) {
+		throw new Error("Invalid id from an INSERT");
+	}
 
-	return (await database.singleQueryPromisify(`SELECT * FROM ${tableNames.users} WHERE id = ?`, [res.insertId]))[0];  // Returns entry given the ID
+	return (await db.query(`SELECT *
+                            FROM ${tableNames.users}
+                            WHERE id = ?`, {
+		type: QueryTypes.SELECT,
+		replacements: [insertId]
+	}))[0];  // Returns entry given the ID
 }
 
 export async function insertTestSession(_testSessionObj) {
@@ -78,19 +91,38 @@ export async function insertTestSession(_testSessionObj) {
 	}
 
 	// Schema dependent. Modify if schema ever changes
-	const res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.sessions} (password, startTime, endTime) VALUES (?, ?, ?)`, _testSessionObj);
+	const [insertSessionId] = await db.query(`INSERT INTO ${tableNames.sessions} (password, startTime, endTime)
+                                                  VALUES (?, ?, ?)`, {
+		type: QueryTypes.INSERT,
+		replacements: _testSessionObj
+	});
 	// Sanity check
-	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
+	if(insertSessionId < 1) throw new Error(`Invalid Inserted Session Row Id: ${insertSessionId}`);
 
-	return (await database.singleQueryPromisify(`SELECT * FROM ${tableNames.sessions} WHERE session_id = ?`, [res.insertId]))[0];  // Returns entry given the ID
+	return (await db.query(`SELECT *
+                            FROM ${tableNames.sessions}
+                            WHERE session_id = ?`, {
+		type: QueryTypes.SELECT,
+		replacements: [insertSessionId]
+	}))[0];  // Returns entry given the ID
 }
 
 export async function associateSession(password, sessionId) {
 	// TODO: Check for errors and success
-	const res = await database.singleQueryPromisify(`UPDATE ${tableNames.users} SET session = ? WHERE password = ?`, [sessionId, password]);
-	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
+	const [_, sessionAffectedRows] = await db.query(`UPDATE ${tableNames.users}
+                                                  SET session = ?
+                                                  WHERE password = ?`, {
+		type: QueryTypes.UPDATE,
+		replacements: [sessionId, password]
+	});
+	if(sessionAffectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert: ${sessionAffectedRows}`);
 
-	return (await database.singleQueryPromisify(`SELECT * FROM ${tableNames.users} WHERE password = ?`, [password]))[0];  // Returns modified user entry
+	return (await db.query(`SELECT *
+                            FROM ${tableNames.users}
+                            WHERE password = ?`, {
+		type: QueryTypes.SELECT,
+		replacements: [password]
+	}))[0];  // Returns modified user entry
 }
 
 export async function insertApiKey(password, apiKey, revoked) {
@@ -99,14 +131,27 @@ export async function insertApiKey(password, apiKey, revoked) {
 	}
 
 	// TODO: Check for errors and success
-	let res;
+	let apiKeyInsertId;
 	if(revoked !== undefined) {
-		res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key, revoked) VALUES (?, ?, ?)`, [password, apiKey, revoked], true);
+		[apiKeyInsertId] = await db.query(`INSERT INTO ${tableNames.api_keys} (password, api_key, revoked)
+                                           VALUES (?, ?, ?)`, {
+			type: QueryTypes.INSERT,
+			replacements: [password, apiKey, revoked]
+		});
 	} else {
-		res = await database.singleQueryPromisify(`INSERT INTO ${tableNames.api_keys} (password, api_key) VALUES (?, ?)`, [password, apiKey], true);
+		[apiKeyInsertId] = await db.query(`INSERT INTO ${tableNames.api_keys} (password, api_key)
+                                           VALUES (?, ?)`, {
+			type: QueryTypes.INSERT,
+			replacements: [password, apiKey]
+		});
 	}
 	// Sanity check
-	if(res.affectedRows !== 1) throw new Error(`Affected Rows should be 1 after insert:\n${JSON.stringify(res, null, "\t")}`);
+	if(apiKeyInsertId < 1) throw new Error(`Invalid API Key Row ID after insert: ${apiKeyInsertId}`);
 
-	return (await database.singleQueryPromisify(`SELECT * FROM ${tableNames.api_keys} WHERE id = ?`, [res.insertId]))[0];  // Returns modified user entry
+	return (await db.query(`SELECT *
+                            FROM ${tableNames.api_keys}
+                            WHERE id = ?`, {
+		type: QueryTypes.SELECT,
+		replacements: [apiKeyInsertId]
+	}))[0];  // Returns modified user entry
 }

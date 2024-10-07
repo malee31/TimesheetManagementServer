@@ -17,3 +17,5 @@ CREATE USER 'INSERT_API_USER_NAME_HERE'@'localhost' IDENTIFIED BY 'INSERT_API_US
     -- Insert to Tables
     -- Update to Tables
     -- Delete from Tables
+GRANT ALL PRIVILEGES ON `INSERT_DATABASE_NAME_HERE`.* TO 'INSERT_API_USER_NAME_HERE'@'localhost';
+FLUSH PRIVILEGES;

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import database from "./src/database/database.js";
+import {start as databaseStart, end as databaseEnd, _dropTables} from "./src/database/database.js";
 
 export default async function globalTeardown() {
 	// TODO: Tear down the test environment in its entirety
@@ -22,10 +22,10 @@ export async function _globalTeardown(nonceDir, nonceFile = "") {
 
 	// TODO: Take a snapshot of the database
 	// Tears down the test database
-	await database.start(true);
-	await database._dropTables();
+	await databaseStart(true);
+	await _dropTables();
 	if(global.setupUsed || global.teardownOnly) {
-		await database.end();
+		await databaseEnd();
 	}
 
 	_clearNonce(nonceDir, nonceFile);
