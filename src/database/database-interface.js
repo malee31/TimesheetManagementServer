@@ -1,30 +1,35 @@
 import { makeNewApiKey } from "../utils/apiKey.js";
 import { TESTING } from "../../config.js";
 import tableNames from "./table-names.js";
-import db from "./database.js";
+import db, { ApiKey, Session, User } from "./database.js";
 import { QueryTypes } from "sequelize";
 
 // This file acts as an abstraction layer between the database and the code for easy compatibility with any database
 // This file should contain methods to interact and manipulate database information
 export async function apiKeyLookup(apiKey) {
-	return await db.query("SELECT * FROM api_keys_v2 WHERE api_key = ?", {
-		type: QueryTypes.SELECT,
-		replacements: [apiKey]
+	return await ApiKey.findAll({
+		where: {
+			api_key: apiKey
+		},
+		raw: true
 	});
 }
 
 export async function apiKeyExchange(password) {
-	const validApiKeyRows = await db.query("SELECT * FROM api_keys_v2 WHERE password = ? AND revoked = FALSE", {
-		type: QueryTypes.SELECT,
-		replacements: [password]
+	const validApiKeyRows = await ApiKey.findAll({
+		where: {
+			password: password,
+			revoked: false
+		},
+		raw: true
 	});
 
 	if(validApiKeyRows.length === 0) {
 		console.warn("An API key was generated during an exchange. This ideally shouldn't occur unless the database was directly modified");
 		const newApiKey = makeNewApiKey();
-		await db.query("INSERT INTO api_keys_v2 VALUES(NULL, ?, ?, FALSE)", {
-			type: QueryTypes.INSERT,
-			replacements: [password, newApiKey]
+		await ApiKey.create({
+			password: password,
+			api_key: newApiKey
 		});
 		return newApiKey;
 	}
@@ -33,12 +38,14 @@ export async function apiKeyExchange(password) {
 }
 
 export async function apiKeyRegenerate(oldApiKey) {
-	const oldApiKeyQuery = await db.query("SELECT * FROM api_keys_v2 WHERE api_key = ?", {
-		type: QueryTypes.SELECT,
-		replacements: [oldApiKey]
+	const oldApiKeyQuery = await ApiKey.findAll({
+		where: {
+			api_key: oldApiKey
+		},
+		raw: true
 	});
 	const oldApiKeyRow = oldApiKeyQuery[0];
-	if(oldApiKeyRow["revoked"]) {
+	if(oldApiKeyRow.revoked) {
 		const revokedError = new RangeError("Already Revoked");
 		revokedError.code = "already_revoked";
 		throw revokedError;
@@ -46,16 +53,22 @@ export async function apiKeyRegenerate(oldApiKey) {
 
 	const transaction = await db.transaction();
 	try {
-		await db.query("UPDATE api_keys_v2 SET revoked = TRUE WHERE api_key = ?", {
-			type: QueryTypes.UPDATE,
+		await ApiKey.update({
+			revoked: true
+		}, {
+			where: {
+				api_key: oldApiKey
+			},
 			transaction: transaction,
-			replacements: [oldApiKey]
+			returning: false
 		});
 		const newApiKey = makeNewApiKey();
-		await db.query("INSERT INTO api_keys_v2 VALUES(NULL, ?, ?, FALSE)", {
-			type: QueryTypes.INSERT,
-			transaction: transaction,
-			replacements: [oldApiKeyRow["password"], newApiKey]
+		await ApiKey.create({
+			password: oldApiKeyRow.password,
+			api_key: newApiKey,
+			revoked: false
+		}, {
+			transaction: transaction
 		});
 		await transaction.commit();
 
@@ -63,13 +76,20 @@ export async function apiKeyRegenerate(oldApiKey) {
 	} catch(err) {
 		console.log("[ROLLBACK] Failed to regenerate an API Key");
 		console.error(err);
+		await transaction.rollback();
 		throw err;
 	}
 }
 
 export async function getAllUsers() {
-	const users = await db.query("SELECT id, first_name, last_name, session FROM users_v2", {
-		type: QueryTypes.SELECT
+	const users = await User.findAll({
+		attributes: [
+			"id",
+			"first_name",
+			"last_name",
+			"session"
+		],
+		raw: true
 	});
 	if(!TESTING && users.length === 0) {
 		console.warn("No users in the database");
@@ -78,8 +98,14 @@ export async function getAllUsers() {
 }
 
 export async function getAllUsersWithStatus() {
-	const users = await db.query("SELECT u.id, u.first_name, u.last_name, s.session_id, s.startTime, s.endTime FROM users_v2 u LEFT JOIN sessions_v2 s ON u.session = s.session_id", {
-		type: QueryTypes.SELECT
+	const users = await User.findAll({
+		attributes: ["id", "first_name", "last_name"],
+		include: [{
+			model: Session,
+			attributes: ["session_id", "startTime", "endTime"],
+			required: false  // This is effectively the Sequelize equivalent of a `LEFT JOIN` in SQL
+		}],
+		raw: true
 	});
 	if(users.length === 0) {
 		console.warn("No users in the database");
@@ -103,11 +129,20 @@ export async function getAllUsersWithStatus() {
 }
 
 export async function getUser(password) {
-	// Uses a non-repeatable read due to READ COMMITTED isolation level  being used to avoid locking
-	const users = await db.query("SELECT id, first_name, last_name, session FROM users_v2 WHERE password = ?;", {
-		type: QueryTypes.SELECT,
-		replacements: [password]
+	// Uses a non-repeatable read due to READ COMMITTED isolation level being used to avoid locking
+	const users = await User.findAll({
+		where: {
+			password: password
+		},
+		attributes: [
+			"id",
+			"first_name",
+			"last_name",
+			"session"
+		],
+		raw: true
 	});
+
 	if(!users.length) return null;
 	return users[0];
 }
@@ -119,6 +154,7 @@ export async function getUser(password) {
  * @return {Object} Returns the new user object
  */
 export async function createUser(userObj) {
+	// TODO: Clean up this validation
 	const userArgs = [userObj["firstName"], userObj["lastName"], userObj["password"]]
 		.map(arg => typeof arg === "string" ? arg.trim() : arg);
 
@@ -130,33 +166,35 @@ export async function createUser(userObj) {
 
 	const transaction = await db.transaction();
 	try {
-		await db.query("INSERT INTO users_v2 VALUES(NULL, ?, ?, ?, NULL)", {
-			type: QueryTypes.INSERT,
-			transaction: transaction,
-			replacements: userArgs
+		await User.create({
+			first_name: userArgs[0],
+			last_name: userArgs[1],
+			password: userArgs[2]
+		}, {
+			transaction: transaction
 		});
 		const newApiKey = makeNewApiKey();
-		await db.query("INSERT INTO api_keys_v2 VALUES(NULL, ?, ?, FALSE)", {
-			type: QueryTypes.INSERT,
-			transaction: transaction,
-			replacements: [userArgs[2], newApiKey]
+		await ApiKey.create({
+			password: userArgs[2],
+			api_key: newApiKey
+		}, {
+			transaction: transaction
 		});
-
-		// Guaranteed to exist
-		const newUser = (await db.query("SELECT * FROM users_v2 WHERE password = ?", {
-			type: QueryTypes.SELECT,
-			transaction: transaction,
-			replacements: [userArgs[2]]
-		}))[0];
 		await transaction.commit();
-
-		return newUser;
 	} catch(err) {
 		console.log("[ROLLBACK] Failed to Create User", userObj);
 		console.error(err);
+		await transaction.rollback();
 		throw err;
 	}
 
+	// Guaranteed to exist
+	return (await User.findAll({
+		where: {
+			password: userArgs[2]
+		},
+		raw: true
+	}))[0];
 }
 
 export async function changePassword(oldPassword, newPassword) {
@@ -165,11 +203,11 @@ export async function changePassword(oldPassword, newPassword) {
 		console.log(`Update ${oldPassword} to ${newPassword}`);
 	}
 
-	const conflictRows = await db.query(`SELECT *
-                                         FROM ${tableNames.users}
-                                         WHERE password = ?`, {
-		type: "SELECT",
-		replacements: [newPassword]
+	const conflictRows = await User.findAll({
+		where: {
+			password: newPassword
+		},
+		raw: true
 	});
 	if(conflictRows.length !== 0) {
 		// Note: Leaks semi-sensitive information into logs
@@ -185,36 +223,42 @@ export async function changePassword(oldPassword, newPassword) {
 
 	const transaction = await db.transaction();
 	try {
-		await db.query(`UPDATE ${tableNames.users}
-                        SET password = ?
-                        WHERE password = ?`, {
-			type: QueryTypes.UPDATE,
-			transaction: transaction,
-			replacements: [newPassword, oldPassword]
+		await User.update({
+			password: newPassword
+		}, {
+			where: {
+				password: oldPassword
+			},
+			transaction: transaction
 		});
-		await db.query(`UPDATE ${tableNames.api_keys}
-                        SET password = ?
-                        WHERE password = ?`, {
-			type: QueryTypes.UPDATE,
-			transaction: transaction,
-			replacements: [newPassword, oldPassword]
+
+		await ApiKey.update({
+			password: newPassword
+		}, {
+			where: {
+				password: oldPassword
+			},
+			transaction: transaction
 		});
-		await db.query(`UPDATE ${tableNames.sessions}
-                        SET password = ?
-                        WHERE password = ?`, {
-			type: QueryTypes.UPDATE,
-			transaction: transaction,
-			replacements: [newPassword, oldPassword]
+
+		await Session.update({
+			password: newPassword
+		}, {
+			where: {
+				password: oldPassword
+			},
+			transaction: transaction
 		});
+
 		await transaction.commit();
 
 		return {
 			ok: true
 		};
 	} catch(err) {
-		await transaction.rollback();
 		console.log("[ROLLBACK] Failed to Change Password");
 		console.error(err);
+		await transaction.rollback();
 
 		return {
 			ok: false
@@ -253,12 +297,18 @@ export async function deleteUser(password) {
 }
 
 export async function listSessions(password) {
-	const userSessions = await db.query(`SELECT session_id, startTime, endTime
-                                         FROM ${tableNames.sessions}
-                                         WHERE password = ?`, {
-		type: QueryTypes.SELECT,
-		replacements: [password]
+	const userSessions = await Session.findAll({
+		where: {
+			password: password
+		},
+		attributes: [
+			"session_id",
+			"startTime",
+			"endTime"
+		],
+		raw: true
 	});
+
 	if(userSessions.length === 0) {
 		if(!TESTING) console.warn("No sessions for user");
 		return null;
@@ -267,14 +317,21 @@ export async function listSessions(password) {
 }
 
 export async function getLatestSession(password) {
-	// Assumption made that user.session is kept up-to-date
-	const latestSessionRes = await db.query(`SELECT s.session_id, s.startTime, s.endTime
-                                             FROM ${tableNames.sessions} s
-                                                      RIGHT JOIN ${tableNames.users} u ON u.session = s.session_id
-                                             WHERE u.password = ?`, {
-		type: QueryTypes.SELECT,
-		replacements: [password]
+	const latestSessionRes = await Session.findAll({
+		attributes: ["session_id", "startTime", "endTime"],
+		include: [{
+			model: User,
+			attributes: [],
+			where: {
+				password: password
+			},
+			required: true    // This is effectively the Sequelize equivalent of a `RIGHT JOIN` in SQL
+		}],
+		order: [["startTime", "DESC"]],
+		limit: 1,
+		raw: true
 	});
+
 	if(latestSessionRes.length === 0 || latestSessionRes[0].session_id === null) {
 		// console.warn("No latest session for user");
 		return null;
@@ -293,27 +350,25 @@ export async function getLatestSession(password) {
  * @return {Object} Returns the new session object
  */
 export async function createSession(password, startTime, endTime = null, skipUpdate = false) {
-	await db.query("INSERT INTO sessions_v2 VALUES(NULL, ?, ?, ?)", {
-		type: QueryTypes.INSERT,
-		replacements: [password, startTime, endTime]
+	const newSession = await Session.create({
+		password: password,
+		startTime: startTime,
+		endTime: endTime
+	}, {
+		raw: true
 	});
-	let newSession;
-	if(endTime === null) {
-		newSession = (await db.query("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ? AND startTime = ? AND endTime IS NULL ORDER BY session_id DESC LIMIT 1", {
-			type: QueryTypes.SELECT,
-			replacements: [password, startTime]
-		}))[0];
-	} else {
-		newSession = (await db.query("SELECT session_id, startTime, endTime FROM sessions_v2 WHERE password = ? AND startTime = ? AND endTime = ? ORDER BY session_id DESC LIMIT 1", {
-			type: QueryTypes.SELECT,
-			replacements: [password, startTime, endTime]
-		}))[0];
-	}
+
 	if(!skipUpdate) {
-		await db.query("UPDATE users_v2 SET session = ? WHERE password = ?", {
-			type: QueryTypes.UPDATE,
-			replacements: [newSession.session_id, password]
-		});
+		await User.update(
+			{
+				session: newSession.session_id
+			},
+			{
+				where: {
+					password: password
+				}
+			}
+		);
 	}
 	return newSession;
 }
@@ -321,37 +376,43 @@ export async function createSession(password, startTime, endTime = null, skipUpd
 export async function patchSession(patchedSession) {
 	// Uses session_id to patch startTime and endTime.
 	// Password and session existence are not checked so ensure they are secure
-	await db.query("UPDATE sessions_v2 SET startTime = ?, endTime = ? WHERE session_id = ?", {
-		type: QueryTypes.UPDATE,
-		replacements: [
-			patchedSession["startTime"],
-			patchedSession["endTime"],
-			patchedSession["session_id"]
-		]
+	await Session.update({
+		startTime: patchedSession["startTime"],
+		endTime: patchedSession["endTime"]
+	}, {
+		where: {
+			session_id: patchedSession["session_id"]
+		}
 	});
 }
 
 export async function deleteSession(sessionId) {
-	const [deletedCount] = await db.query("DELETE FROM sessions_v2 WHERE session_id = ?", {
-		type: QueryTypes.DELETE,
-		replacements: [sessionId]
+	const deletedCount = await Session.destroy({
+		where: {
+			session_id: sessionId
+		}
 	});
-	// TODO: Handle edge case where the current session is deleted
+
 	if(deletedCount < 1) {
 		const noDeleteErr = new RangeError("Session Not Found");
 		noDeleteErr.code = "not_found";
 		throw noDeleteErr;
 	}
+
+	// TODO: Handle edge case where the current session is deleted
 }
 
 export async function getSessions(count, offset) {
-	const sessionsRes = await db.query("SELECT session_id, startTime, endTime FROM sessions_v2 ORDER BY session_id LIMIT ? OFFSET ?", {
-		type: QueryTypes.SELECT,
-		replacements: [count, offset]
+	const sessions = await Session.findAll({
+		attributes: ["session_id", "startTime", "endTime"],
+		order: [["session_id", "ASC"]],
+		limit: count,
+		offset: offset,
+		raw: true
 	});
-	if(sessionsRes.length === 0) {
+
+	if(sessions.length === 0) {
 		return null;
 	}
-
-	return sessionsRes;
+	return sessions;
 }

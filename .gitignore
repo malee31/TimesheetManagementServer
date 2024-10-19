@@ -3,3 +3,5 @@ testing.env
 .idea/
 private/
 node_modules/
+*.sql
+*.sqlite
