@@ -12,7 +12,6 @@
 // This function generates user details to use in tests with optional name overriding. Pass the output directly to createUser()
 import { v4 as uuidv4 } from "uuid";
 import db from "../database/database.js";
-import * as database from "../database/database.js";
 import tableNames from "../database/table-names.js";
 import { QueryTypes } from "sequelize";
 

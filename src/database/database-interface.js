@@ -2,7 +2,7 @@ import { makeNewApiKey } from "../utils/apiKey.js";
 import { TESTING } from "../../config.js";
 import tableNames from "./table-names.js";
 import db, { ApiKey, Session, User } from "./database.js";
-import { QueryTypes } from "sequelize";
+import { Op, QueryTypes, col } from "sequelize";
 
 // This file acts as an abstraction layer between the database and the code for easy compatibility with any database
 // This file should contain methods to interact and manipulate database information
@@ -102,11 +102,18 @@ export async function getAllUsersWithStatus() {
 		attributes: ["id", "first_name", "last_name"],
 		include: [{
 			model: Session,
+			as: "session",
 			attributes: ["session_id", "startTime", "endTime"],
+			where: {
+				session_id: {
+					[Op.eq]: col('User.password')
+				}
+			},
 			required: false  // This is effectively the Sequelize equivalent of a `LEFT JOIN` in SQL
 		}],
 		raw: true
 	});
+	console.log("DONE")
 	if(users.length === 0) {
 		console.warn("No users in the database");
 	}
@@ -269,10 +276,11 @@ export async function changePassword(oldPassword, newPassword) {
 export async function deleteUser(password) {
 	const transaction = await db.transaction();
 	try {
-		const [deleteCount] = await db.query("DELETE FROM users_v2 WHERE password = ?", {
-			type: QueryTypes.DELETE,
-			transaction: transaction,
-			replacements: [password]
+		const deleteCount = await User.destroy({
+			where: {
+				password: password
+			},
+			transaction: transaction
 		});
 		if(deleteCount < 1) {
 			const noUserError = new TypeError("No user with this password");
@@ -280,18 +288,18 @@ export async function deleteUser(password) {
 			throw noUserError;
 		}
 
-		await db.query(`DELETE
-                        FROM ${tableNames.api_keys}
-                        WHERE password = ?`, {
-			type: QueryTypes.DELETE,
-			transaction: transaction,
-			replacements: [password]
+		await ApiKey.destroy({
+			where: {
+				password: password
+			},
+			transaction: transaction
 		});
+
 		await transaction.commit();
 	} catch(err) {
-		await transaction.rollback();
 		console.log("[ROLLBACK] Failed to delete user");
 		console.error(err);
+		await transaction.rollback();
 		throw err;
 	}
 }
@@ -319,14 +327,9 @@ export async function listSessions(password) {
 export async function getLatestSession(password) {
 	const latestSessionRes = await Session.findAll({
 		attributes: ["session_id", "startTime", "endTime"],
-		include: [{
-			model: User,
-			attributes: [],
-			where: {
-				password: password
-			},
-			required: true    // This is effectively the Sequelize equivalent of a `RIGHT JOIN` in SQL
-		}],
+		where: {
+			password: password
+		},
 		order: [["startTime", "DESC"]],
 		limit: 1,
 		raw: true

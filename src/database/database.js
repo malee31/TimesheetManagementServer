@@ -113,9 +113,10 @@ User.init({
 		type: DataTypes.INTEGER,
 		references: {
 			model: Session,
-			key: "session_id",
+			key: "session_id"
 		},
-		defaultValue: null
+		defaultValue: null,
+		onDelete: "CASCADE"
 	},
 }, {
 	sequelize: sequelize,
@@ -133,11 +134,17 @@ async function createTables() {
 // Restarting the server should regenerate new tables using createTables()
 async function dropTables() {
 	// All logging turned on for this extremely destructive action
+	try {
+
 	await sequelize.drop({
 		cascade: true,
 		benchmark: true,
 		logging: console.info
 	});
+	} catch(err) {
+		console.error(err)
+		throw err;
+	}
 }
 
 
