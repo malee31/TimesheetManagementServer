@@ -31,7 +31,8 @@ let sequelize = PRODUCTION
 	) : (
 		new Sequelize({
 			dialect: "sqlite",
-			storage: "dev-database.sqlite"
+			storage: "dev-database.sqlite",
+			logging: false
 		})
 	);
 
@@ -127,7 +128,10 @@ User.init({
 // Generates tables if they do not exist
 // WARNING: Will not modify tables with an updated schema if they already exist
 async function createTables() {
-	await sequelize.sync({ alter: true });
+	await sequelize.sync({
+		alter: true,
+		logging: false  // Change to `console.log` if debugging or making alterations in development
+	});
 }
 
 // Purges all tables and data
@@ -150,27 +154,27 @@ async function dropTables() {
 
 // Sets up and starts up the database
 async function start(skipTableCreation = false) {
-	if(!TESTING) console.log("Creating And Testing A Connection");
+	if(!TESTING) console.log("===== Testing SQL Connection =====");
 
 	// Test connection
 	await db.query("SELECT 1 + 1 AS solution")
 		.then(() => {
-			if(!TESTING) console.log("Successfully Connection Confirmed");
+			if(!TESTING) console.log("===== SQL Connection Confirmed =====");
 		})
 		.catch(err => {
-			console.warn("Failed To Confirm Connection:");
+			console.warn("!!!!! Failed To Confirm Connection (Reason below) !!!!!");
 			console.error(err);
 		});
 
 	if(!skipTableCreation) {
 		// Create tables if they do not already exist
-		if(!TESTING) console.log("Setting Up Tables");
+		if(!TESTING) console.log("===== Synchronizing Table Structures =====");
 		await createTables()
 			.then(() => {
-				if(!TESTING) console.log("Table Existence Confirmed");
+				if(!TESTING) console.log("===== Confirmed Tables Exist =====");
 			})
 			.catch(err => {
-				console.warn("Failed To Create Tables:");
+				console.warn("!!!!! Failed To Create Tables (Reason below) !!!!!");
 				console.error(err);
 			});
 	}
