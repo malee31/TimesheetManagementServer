@@ -102,10 +102,14 @@ export async function getAllUsersWithStatus() {
 		attributes: ["id", "first_name", "last_name"],
 		include: [{
 			model: Session,
-			as: "session",
+			association: User.hasMany(Session, {
+				as: "session_data",
+				sourceKey: "session",
+				foreignKey: "session_id"
+			}),
 			attributes: ["session_id", "startTime", "endTime"],
 			where: {
-				session_id: {
+				password: {
 					[Op.eq]: col('User.password')
 				}
 			},
@@ -113,24 +117,25 @@ export async function getAllUsersWithStatus() {
 		}],
 		raw: true
 	});
-	console.log("DONE")
 	if(users.length === 0) {
 		console.warn("No users in the database");
 	}
 
 	// Modify SQL output (self) to fit output schema
 	for(const userStatus of users) {
-		if(userStatus.session_id !== null) {
+		if(userStatus[`session_data.session_id`] !== null) {
 			userStatus.session = {
-				session_id: userStatus.session_id,
-				startTime: userStatus.startTime,
-				endTime: userStatus.endTime
+				session_id: userStatus[`session_data.session_id`],
+				startTime: userStatus[`session_data.startTime`],
+				endTime: userStatus[`session_data.endTime`]
 			};
+		} else {
+			userStatus.session = null;
 		}
 
-		delete userStatus.session_id;
-		delete userStatus.startTime;
-		delete userStatus.endTime;
+		delete userStatus[`session_data.session_id`];
+		delete userStatus[`session_data.startTime`];
+		delete userStatus[`session_data.endTime`];
 	}
 	return users;
 }

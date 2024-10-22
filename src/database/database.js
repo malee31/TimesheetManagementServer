@@ -129,7 +129,7 @@ User.init({
 // WARNING: Will not modify tables with an updated schema if they already exist
 async function createTables() {
 	await sequelize.sync({
-		alter: true,
+		alter: false,  // Change to true if models have changed
 		logging: false  // Change to `console.log` if debugging or making alterations in development
 	});
 }
@@ -138,17 +138,11 @@ async function createTables() {
 // Restarting the server should regenerate new tables using createTables()
 async function dropTables() {
 	// All logging turned on for this extremely destructive action
-	try {
-
 	await sequelize.drop({
 		cascade: true,
 		benchmark: true,
 		logging: console.info
 	});
-	} catch(err) {
-		console.error(err)
-		throw err;
-	}
 }
 
 

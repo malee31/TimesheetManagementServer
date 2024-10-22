@@ -49,7 +49,7 @@ describe("GET /", () => {
 					id: expect.any(Number),
 					first_name: expect.any(String),
 					last_name: expect.any(String),
-					session: expect.any(Number),
+					session: expect.toBeOneOf([null, expect.any(Number)])
 				})
 			])
 		});
