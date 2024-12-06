@@ -1,3 +1,4 @@
+// These routes are GET routes that retrieve aggregated information about all users at once, like their current state
 import { Router } from "express";
 import authMiddleware from "../middleware/auth-errors.js";
 import { getAllUsers, getAllUsersWithStatus, getSessions } from "../../database/database-interface.js";

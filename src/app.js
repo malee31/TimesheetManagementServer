@@ -1,8 +1,11 @@
 import express from "express";
+import cors from "cors";
 import initialRouter from "./routes/initial-router.js";
 import apiRouter from "./routes/api-router.js";
 
 const app = express();
+app.use(cors());
+
 app.use((req, res, next) => {
 	express.json()(req, res, err => {
 		if(err && err.type === "entity.parse.failed") {
