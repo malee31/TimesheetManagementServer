@@ -34,7 +34,7 @@ let router = initialRouter;
 
 // Allows for swapping out the router in use during runtime
 app.use((req, res, next) => {
-	console.log(req.url)
+	console.log(`[${req.method}] ${req.url} | ${req.ip} | ${req.headers["user-agent"]}`);
 	return router(req, res, next);
 });
 
