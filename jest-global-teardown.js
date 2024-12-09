@@ -23,7 +23,7 @@ export async function _globalTeardown(nonceDir, nonceFile = "") {
 	// TODO: Take a snapshot of the database
 	// Tears down the test database
 	await databaseStart(true);
-	await _dropTables();
+	await _dropTables(false);
 	if(global.setupUsed || global.teardownOnly) {
 		await databaseEnd();
 	}
