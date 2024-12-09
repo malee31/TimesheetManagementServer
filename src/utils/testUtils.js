@@ -109,8 +109,8 @@ export async function insertTestSession(_testSessionObj) {
 export async function associateSession(password, sessionId) {
 	// TODO: Check for errors and success
 	const [_, sessionAffectedRows] = await db.query(`UPDATE ${tableNames.users}
-                                                  SET session = ?
-                                                  WHERE password = ?`, {
+                                                     SET session = ?
+                                                     WHERE password = ?`, {
 		type: QueryTypes.UPDATE,
 		replacements: [sessionId, password]
 	});

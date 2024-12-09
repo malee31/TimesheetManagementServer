@@ -35,7 +35,6 @@ usersRouter.get("/", async (req, res) => {
 
 usersRouter.get("/status", async (req, res) => {
 	// List all user data with statuses
-	// TODO: Join with sessions
 	const allUsers = await getAllUsersWithStatus();
 	return res.status(200).send({
 		ok: true,

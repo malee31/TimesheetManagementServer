@@ -1,8 +1,8 @@
 import { makeNewApiKey } from "../utils/apiKey.js";
 import { TESTING } from "../../config.js";
+import db, { ApiKey, Session, SessionAssociation, User } from "./database.js";
+import sequelize, { Op } from "sequelize";
 import tableNames from "./table-names.js";
-import db, { ApiKey, Session, User } from "./database.js";
-import { Op, QueryTypes, col } from "sequelize";
 
 // This file acts as an abstraction layer between the database and the code for easy compatibility with any database
 // This file should contain methods to interact and manipulate database information
@@ -99,18 +99,38 @@ export async function getAllUsers() {
 
 export async function getAllUsersWithStatus() {
 	const users = await User.findAll({
-		attributes: ["id", "first_name", "last_name"],
+		attributes: [
+			"id",
+			"first_name",
+			"last_name",
+			[
+				// Note the wrapping parentheses in the call below!
+				sequelize.literal(`(
+                    SELECT SUM(endTime)
+                    FROM ${tableNames.sessions} AS Sessions
+                    WHERE User.password = Sessions.password
+                    AND Sessions.endTime IS NOT NULL
+                )`),
+				"total_end",
+			],
+			[
+				// Note the wrapping parentheses in the call below!
+				sequelize.literal(`(
+                    SELECT SUM(startTime)
+                    FROM ${tableNames.sessions} AS Sessions
+                    WHERE User.password = Sessions.password
+                    AND Sessions.endTime IS NOT NULL
+                )`),
+				"total_start",
+			]
+		],
 		include: [{
 			model: Session,
-			association: User.hasMany(Session, {
-				as: "session_data",
-				sourceKey: "session",
-				foreignKey: "session_id"
-			}),
+			association: SessionAssociation,
 			attributes: ["session_id", "startTime", "endTime"],
 			where: {
 				password: {
-					[Op.eq]: col('User.password')
+					[Op.eq]: "User.password"
 				}
 			},
 			required: false  // This is effectively the Sequelize equivalent of a `LEFT JOIN` in SQL
@@ -133,6 +153,12 @@ export async function getAllUsersWithStatus() {
 			userStatus.session = null;
 		}
 
+		userStatus.total_sessions = 0;
+		if(userStatus["total_start"] && userStatus["total_end"]) {
+			userStatus.total_sessions = userStatus["total_end"] - userStatus["total_start"];
+		}
+		delete userStatus["total_start"];
+		delete userStatus["total_end"];
 		delete userStatus[`session_data.session_id`];
 		delete userStatus[`session_data.startTime`];
 		delete userStatus[`session_data.endTime`];

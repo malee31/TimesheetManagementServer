@@ -12,7 +12,7 @@
  */
 
 // Configure SQL credentials from environment variables
-import { Sequelize, DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Sequelize } from "sequelize";
 import tableNames from "./table-names.js";
 import { MYSQL_DATABASE, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_USER, PRODUCTION, TESTING } from "../../config.js";
 
@@ -114,7 +114,7 @@ User.init({
 		type: DataTypes.INTEGER,
 		references: {
 			model: Session,
-			key: "session_id"
+			key: "session_id",
 		},
 		defaultValue: null,
 		onDelete: "CASCADE"
@@ -123,6 +123,13 @@ User.init({
 	sequelize: sequelize,
 	tableName: tableNames.users,
 	timestamps: false
+});
+
+export const SessionAssociation = User.hasMany(Session, {
+	as: "session_data",
+	foreignKey: "session_id",
+	sourceKey: "session",
+	constraints: false
 });
 
 // Generates tables if they do not exist
@@ -136,12 +143,12 @@ async function createTables() {
 
 // Purges all tables and data
 // Restarting the server should regenerate new tables using createTables()
-async function dropTables() {
+async function dropTables(logging = true) {
 	// All logging turned on for this extremely destructive action
 	await sequelize.drop({
 		cascade: true,
 		benchmark: true,
-		logging: console.info
+		logging: logging ? console.info : false
 	});
 }
 
